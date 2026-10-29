@@ -3,10 +3,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from app.models import BookingStatus
+from app.schemas.attachment import AttachmentRead
+from app.schemas.auth import UserRead
 from app.schemas.base import CamelModel
+from app.schemas.condition import ConditionReportRead
+from app.schemas.incident import IncidentRead
+from app.schemas.ledger import LedgerEventRead
+from app.schemas.resource import ResourceRead
 
 
 class BookingRead(CamelModel):
@@ -63,6 +69,69 @@ class BookingRead(CamelModel):
             elif "end_at" in data and "end" not in data:
                 data["end"] = data["end_at"]
         return data
+
+
+class BookingEnrichedUserRead(BookingRead):
+    resource_name: str
+    resource_location: str
+    resource_supervision: str
+
+
+class BookingEnrichedOrgRead(BookingRead):
+    resource_name: str
+    resource_location: str
+    resource_supervision: str
+    requester_name: str
+    requester_email: str
+    requester_department: str
+
+
+class BookingCreate(CamelModel):
+    resource_id: str
+    start: datetime | None = None
+    end: datetime | None = None
+    start_at: datetime | None = None
+    end_at: datetime | None = None
+    purpose: str = Field(..., min_length=8)
+    project_code: str | None = None
+    team_members: list[str] = []
+    idempotency_key: str | None = None
+    join_waitlist_if_conflict: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def reconcile_times(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "startAt" in data and "start" not in data:
+                data["start"] = data["startAt"]
+            elif "start_at" in data and "start" not in data:
+                data["start"] = data["start_at"]
+            if "endAt" in data and "end" not in data:
+                data["end"] = data["endAt"]
+            elif "end_at" in data and "end" not in data:
+                data["end"] = data["end_at"]
+        return data
+
+
+class BookingCancelRequest(CamelModel):
+    reason: str = "Cancelled by user."
+
+
+class BookingDecisionRequest(CamelModel):
+    decision: str  # APPROVED, REJECTED, WAITLISTED, NEEDS_INFORMATION
+    reason: str = Field(..., min_length=5)
+    is_policy_override: bool = False
+
+
+class BookingDetailResponse(CamelModel):
+    booking: BookingRead
+    resource: ResourceRead
+    requester: UserRead
+    condition_reports: list[ConditionReportRead] = []
+    incidents: list[IncidentRead] = []
+    ledger_events: list[LedgerEventRead] = []
+    attachments: list[AttachmentRead] = []
+    competing_requests: list[BookingEnrichedOrgRead] = []
 
 
 class ResourceAvailabilityResponse(CamelModel):

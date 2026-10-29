@@ -180,6 +180,7 @@ If the core lifecycle is incomplete at H24, defer AI and analytics.
 - 2026-10-29: Phase 03 completed — Authentication, sessions, JWT, cookies, tenant RLS binding on auth, server-side role permissions (`require_roles`), demo login, admin role updates with required governance reasons, tamper-evident ledger auditing of role modifications, 26 integration tests passing.
 - 2026-10-29: Phase 04 completed — Resource catalogue, search, filters, specifications, auto-provisioned assets with unguessable QR tokens, resource publish lifecycle transitions with governance reasons, calendar availability, waitlist queries, QR asset scanning with contextual permitted actions, 35 integration tests passing.
 - 2026-10-29: Phase 05 completed — Policy engine, versioning, reason-bound policy activation, simulation preview against historical scenarios, and deterministic 8-check eligibility evaluation engine with clear institutional reasons and actionable next steps. 43 integration tests passing.
+- 2026-10-29: Phase 06 completed — Booking lifecycle state machine, idempotent creation with key tracking, server-side transition validator, cancellation with permissions, manager decisions with mandatory governance reason (>= 5 chars), policy override support, concurrency conflict recheck, and Trust Ledger event emission. 52 integration tests passing.
 
 Append dated decisions below as the project evolves.
 
@@ -191,6 +192,7 @@ Append dated decisions below as the project evolves.
 **Phase 03: COMPLETE** — Authentication, sessions, JWT, cookies, tenant RLS binding on auth, server-side role permissions (`require_roles`), demo login, admin role updates with required governance reasons, tamper-evident ledger auditing of role modifications, 26 integration tests passing.
 **Phase 04: COMPLETE** — Resource catalogue, search, filters, specifications, auto-provisioned assets with unguessable QR tokens, resource publish lifecycle transitions with governance reasons, calendar availability, waitlist queries, QR asset scanning with contextual permitted actions, 35 integration tests passing.
 **Phase 05: COMPLETE** — Policy engine, versioning, reason-bound policy activation, simulation preview against historical scenarios, and deterministic 8-check eligibility evaluation engine with clear institutional reasons and actionable next steps. 43 integration tests passing.
+**Phase 06: COMPLETE** — Booking lifecycle state machine, idempotent creation with key tracking, server-side transition validator, cancellation with permissions, manager decisions with mandatory governance reason (>= 5 chars), policy override support, concurrency conflict recheck, and Trust Ledger event emission. 52 integration tests passing.
 
 **Implemented (Backend & Database):**
 - PostgreSQL 18 schema with 18 tables and Alembic migrations from empty to head
@@ -204,13 +206,14 @@ Append dated decisions below as the project evolves.
 - QR Asset Scanning Endpoint: `GET /api/v1/assets/scan/{qr_token}` (evaluates actor's active bookings, returns contextual actions like `CHECK_IN`, `RETURN`, `STAFF_CONFIRM_RETURN`, `VIEW_RESOURCE`, and institutional explanation)
 - Policy Endpoints: `GET /api/v1/policies`, `GET /api/v1/policies/{id}`, `POST /api/v1/policies` (admin/manager + ledger event), `POST /api/v1/policies/{id}/versions` (admin/manager + ledger event), `POST /api/v1/policies/{id}/activate` (admin/manager + reason + ledger event), `POST /api/v1/policies/{id}/preview` (dry-run simulation comparing before/after against real resource and user)
 - Eligibility Evaluation Endpoints: `POST /api/v1/bookings/eligibility-check` and `POST /api/v1/eligibility/evaluate` (evaluates account verification, institutional membership, resource operational status, resource-specific verified training records, booking time window validity, calendar concurrency conflicts with confirmed bookings, rolling window usage caps, single-session duration limits, and supervision/human review requirements)
-- Tamper-evident Trust Ledger audit event generation on administrative role updates, resource creation, resource updates, status changes, asset registrations, policy creation, policy version creation, and policy activations
+- Booking Lifecycle Endpoints: `POST /api/v1/bookings` (idempotent creation, eligibility evaluation, waitlist handling, priority factor calculation), `GET /api/v1/bookings/mine` (user's bookings with resource enrichment), `GET /api/v1/bookings/org` (all org bookings for staff with user & resource enrichment), `GET /api/v1/bookings/{id}` (full booking graph including condition reports, incidents, ledger events, attachments, and competing overlapping requests), `POST /api/v1/bookings/{id}/cancel` (user or staff cancellation with reason), `POST /api/v1/bookings/{id}/decision` (manager approve, reject, waitlist, needs info with governance reasons and policy override checks)
+- Tamper-evident Trust Ledger audit event generation on administrative role updates, resource creation, resource updates, status changes, asset registrations, policy creation, policy version creation, policy activations, booking requests, cancellations, and decisions
 - PostgreSQL exclusion constraint (`btree_gist`) preventing overlapping confirmed bookings
 - Check constraint `start_at < end_at`
 - Database trigger `trg_protect_ledger_events` preventing application-level UPDATE and DELETE on historical ledger events
 - Canonical deterministic JSON serialization and SHA-256 hash chaining for Trust Ledger
 - Deterministic seed script `scripts/seed.py` matching frontend demo scenarios across 2 institutions
-- 43 automated integration tests covering RLS isolation, fail-closed behavior, cross-tenant denial, overlap rejection, migration downgrade/upgrade, ledger tamper detection, seed repeatability, authentication, role enforcement matrix, governance reason requirement, resource catalogue, filtering, asset creation, QR resolution, policy versioning, preview simulation, and comprehensive eligibility checks
+- 52 automated integration tests covering RLS isolation, fail-closed behavior, cross-tenant denial, overlap rejection, migration downgrade/upgrade, ledger tamper detection, seed repeatability, authentication, role enforcement matrix, governance reason requirement, resource catalogue, filtering, asset creation, QR resolution, policy versioning, preview simulation, comprehensive eligibility checks, booking creation, idempotency, waitlist routing, cancellation, decision rules, and full graph resolution
 
 **Implemented (in mock/frontend):**
 - Complete React 19 frontend with 25+ screens, role guards, responsive design
@@ -221,4 +224,4 @@ Append dated decisions below as the project evolves.
 - QR asset scan flow with contextual actions
 - All API contracts defined in `src/lib/api.ts` and `CONTRACT.md`
 
-**Next task:** Phase 06 — Booking Lifecycle State Machine, Idempotent Creation, Requests, and Authorised Decisions
+**Next task:** Phase 07 — Fair Allocation, Rolling Usage Caps Window, and Waitlist Auto-Promotion

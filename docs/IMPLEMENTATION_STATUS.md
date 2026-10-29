@@ -53,17 +53,17 @@
 ### FR-05: Booking Request
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Request: resource, requester, start/end, purpose, status | Mocked | `Booking` type + `api.createBooking()` |
-| Validate start < end, allowed window, resource bookable | Mocked | `time_validity`, `resource_status`, `time_conflict` checks |
-| Snapshot policy versions on booking | Mocked | `Booking.policyVersionIds` + `eligibilityChecks` stored |
+| Request: resource, requester, start/end, purpose, status | Implemented | `backend/app/api/v1/bookings.py:create_booking`, `BookingCreate` schema, tested in `test_bookings_lifecycle.py` |
+| Validate start < end, allowed window, resource bookable | Implemented | Server-side validation + eligibility checks in `create_booking` |
+| Snapshot policy versions on booking | Implemented | `Booking.policy_version_ids` and `Booking.eligibility_checks` populated during creation |
 
 ### FR-06: Review and Decision
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Only authorised owner/manager approve/reject | Mocked | `requireRole(['OWNER','MANAGER','ADMIN'])` in `decideBooking` |
-| Decisions require reason (rejection, override) | Mocked | `reason` required, `MockApiError 422 REASON_REQUIRED` |
-| Explicit statuses, backend validates transitions | Mocked | `ALLOWED_TRANSITIONS` + `validateTransition()` |
-| Manager sees eligibility + conflicts before deciding | Mocked | `ReviewWorkspacePage` shows eligibility, competing requests |
+| Only authorised owner/manager approve/reject | Implemented | `require_roles([Role.OWNER, Role.MANAGER, Role.ADMIN])` on `POST /bookings/{id}/decision` |
+| Decisions require reason (rejection, override) | Implemented | Minimum 5-character reason enforced, returns 422 if missing, recorded in Trust Ledger |
+| Explicit statuses, backend validates transitions | Implemented | `validate_transition` enforces `ALLOWED_TRANSITIONS`, returns 400 on illegal transitions |
+| Manager sees eligibility + conflicts before deciding | Implemented | `GET /bookings/{id}` returns full detail, eligibility checks, condition reports, incidents, competing requests |
 
 ### FR-07: Fair Allocation and Waitlist
 | Requirement | Status | Evidence |
