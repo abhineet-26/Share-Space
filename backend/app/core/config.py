@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     LOG_LEVEL: str = "INFO"
+    ENABLE_DOCS: bool = Field(
+        default=True,
+        description="Enable Swagger UI (/docs), ReDoc (/redoc), and OpenAPI (/openapi.json) endpoints",
+    )
 
     # Server
     HOST: str = "0.0.0.0"

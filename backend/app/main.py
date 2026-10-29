@@ -53,14 +53,15 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 def create_app() -> FastAPI:
+    docs_enabled = settings.ENABLE_DOCS
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
         description="SHARESPACE - Trusted Institutional Resource Sharing Platform",
         lifespan=lifespan,
-        docs_url="/docs" if settings.DEBUG else None,
-        redoc_url="/redoc" if settings.DEBUG else None,
-        openapi_url="/openapi.json" if settings.DEBUG else None,
+        docs_url="/docs" if docs_enabled else None,
+        redoc_url="/redoc" if docs_enabled else None,
+        openapi_url="/openapi.json" if docs_enabled else None,
     )
 
     # CORS
@@ -113,16 +114,25 @@ def create_app() -> FastAPI:
     @app.get("/readyz", tags=["Health"])
     async def readyz():
         db_ok = False
+        migration_version = None
         try:
             async with engine.connect() as conn:
                 await conn.execute(text("SELECT 1"))
-            db_ok = True
+                db_ok = True
+                try:
+                    res = await conn.execute(
+                        text("SELECT version_num FROM alembic_version LIMIT 1")
+                    )
+                    migration_version = res.scalar_one_or_none()
+                except Exception:
+                    pass
         except Exception:
             pass
 
         return {
             "status": "ready" if db_ok else "not_ready",
             "database": "connected" if db_ok else "disconnected",
+            "migration_version": migration_version,
             "mode": settings.ENVIRONMENT,
             "timestamp": __import__("datetime")
             .datetime.now(__import__("datetime").timezone.utc)

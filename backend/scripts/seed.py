@@ -1151,6 +1151,20 @@ async def seed_database(session: AsyncSession) -> None:
 
 
 async def main() -> None:
+    import os
+
+    from app.core.config import get_settings
+
+    cfg = get_settings()
+    if (
+        cfg.is_production
+        and not cfg.ENABLE_DEMO_LOGIN
+        and os.environ.get("FORCE_SEED", "").lower() != "true"
+    ):
+        print("ABORTING SEED: Production environment detected and ENABLE_DEMO_LOGIN is disabled.")
+        print("To override deliberately, set FORCE_SEED=true.")
+        return
+
     async with migration_session_factory() as session:
         await seed_database(session)
 
