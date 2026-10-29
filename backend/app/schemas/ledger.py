@@ -53,6 +53,29 @@ class LedgerEventRead(CamelModel):
         return data
 
 
+class LedgerEventsListResponse(CamelModel):
+    events: list[LedgerEventRead]
+    last_verified_at: datetime | None = None
+    head_seq: int = 0
+    head_hash: str = "0" * 64
+
+
+class LedgerVerificationResult(CamelModel):
+    organization_id: str
+    valid: bool
+    checked_count: int
+    head_seq: int
+    head_hash: str
+    verified_at: datetime
+    first_invalid_seq: int | None = None
+    error_details: str | None = None
+
+
+class LedgerSimulateTamperResponse(CamelModel):
+    tampered_seq: int
+
+
+# Backward compatibility alias
 class LedgerVerificationResponse(CamelModel):
     organization_id: str
     is_valid: bool

@@ -100,10 +100,10 @@
 ### FR-11: Audit History
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Key actions recorded: listing changes, requests, eligibility, decisions, cancellations, waitlist, check-in, conditions, checkout, incidents, policy overrides | Mocked | `INITIAL_RAW_LEDGER_EVENTS` + `appendLedgerEvent()` called on all mutations |
-| Event fields: actor, action, target, timestamp, metadata, reason | Mocked | `LedgerEvent` type matches |
-| Users cannot edit/delete history via app | Mocked | No UPDATE/DELETE endpoints for ledger |
-| No secrets/sensitive data in audit metadata | Mocked | Metadata allowlisted in `appendLedgerEvent()` |
+| Key actions recorded: listing changes, requests, eligibility, decisions, cancellations, waitlist, check-in, conditions, checkout, incidents, policy overrides | Implemented | `backend/app/services/ledger.py:append_ledger_event` invoked on all lifecycle mutation routes, verified in integration tests |
+| Event fields: actor, action, target, timestamp, metadata, reason | Implemented | `LedgerEventRead` model matches frontend type down to casing; SHA-256 prev_hash/hash |
+| Users cannot edit/delete history via app | Implemented | Database trigger `trg_protect_ledger_events` prevents application-level UPDATE and DELETE |
+| No secrets/sensitive data in audit metadata | Implemented | Metadata allowlisted in domain services; zero credentials, tokens, or PII ever logged |
 
 ### FR-12: Notifications
 | Requirement | Status | Evidence |
@@ -142,16 +142,16 @@
 ### FR-16: Tamper-evident Ledger [Foundation]
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Each audit event chained to previous by hash (per org) | Mocked | `computeLedgerEventHash()` + `seq`, `prevHash`, `hash` |
-| Authorized endpoint recomputes chain, reports first mismatch | Mocked | `verifyOrganizationLedgerChain()` returns `LedgerVerificationResult` |
-| App DB role: INSERT + SELECT only on ledger | Planned | Trigger design documented; not enforced in mock |
-| Described as tamper-evident, not immutable/blockchain | Mocked | `DESIGN.md` Screen P, `RULES.md` §10B, `MEMORY.md` §82 |
+| Each audit event chained to previous by hash (per org) | Implemented | `compute_ledger_event_hash` (`prev_hash || canonical_json`), tested in `test_ledger_integrity.py` and `test_audit_events_api.py` |
+| Authorized endpoint recomputes chain, reports first mismatch | Implemented | `GET /api/v1/audit-events/verify` recomputes chain and flags exact sequence, tested in `test_audit_events_api.py` |
+| App DB role: INSERT + SELECT only on ledger | Implemented | PostgreSQL trigger `trg_protect_ledger_events` prevents UPDATE and DELETE for `sharespace_app` role |
+| Described as tamper-evident, not immutable/blockchain | Implemented | Verified in all backend schemas, API responses, tests, and documentation |
 
 ### FR-17: Asset QR Identity [Pilot — Tier 2]
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Individual assets with printable QR labels (unguessable token) | Mocked | `Asset.qrToken`, `PrintableQrLabelSheetPage`, `createAssetForResource()` |
-| Scan requires auth, shows contextual actions, grants no access | Mocked | `scanAssetQr()` returns `allowedActions` based on bookings/role |
+| Individual assets with printable QR labels (unguessable token) | Implemented | `Asset.qr_token`, `POST /resources/{id}/assets` auto-provisions unguessable tokens, tested in `test_resources_catalogue.py` |
+| Scan requires auth, shows contextual actions, grants no access | Implemented | `GET /api/v1/assets/scan/{qr_token}` evaluates bookings/role without granting access, tested in `test_resources_catalogue.py` |
 
 ### FR-18: Evidence Attachments [Pilot — Tier 2]
 | Requirement | Status | Evidence |
