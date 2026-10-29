@@ -37,12 +37,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Restrict unnecessary browser capabilities
         response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
 
-        # Content Security Policy (strict script & frame controls, permitting Swagger/ReDoc CDN assets)
+        # Content Security Policy (strict script, worker & frame controls, permitting Swagger/ReDoc CDN assets)
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "img-src 'self' data: https: https://fastapi.tiangolo.com; "
+            "worker-src 'self' blob:; "
+            "child-src 'self' blob:; "
             "connect-src 'self' http: https: ws: wss:; "
             "frame-ancestors 'none';"
         )

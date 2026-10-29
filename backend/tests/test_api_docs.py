@@ -24,11 +24,25 @@ async def test_docs_endpoints_available_by_default() -> None:
         assert "text/html" in resp_docs.headers.get("content-type", "")
         assert "swagger-ui" in resp_docs.text.lower()
 
-        # 2. ReDoc at /redoc
+        # 2. ReDoc at /redoc with stable 2.x bundle and without Google Fonts
         resp_redoc = await client.get("/redoc")
         assert resp_redoc.status_code == 200
         assert "text/html" in resp_redoc.headers.get("content-type", "")
-        assert "redoc" in resp_redoc.text.lower()
+        redoc_html = resp_redoc.text
+        assert "redoc" in redoc_html.lower()
+        # Verify stable ReDoc 2.x bundle URL
+        assert "https://cdn.jsdelivr.net/npm/redoc@2/bundles/redoc.standalone.js" in redoc_html
+        # Verify spec-url points to /openapi.json
+        assert 'spec-url="/openapi.json"' in redoc_html
+        # Verify Google Fonts are not requested
+        assert "fonts.googleapis.com" not in redoc_html
+        assert "fonts.gstatic.com" not in redoc_html
+
+        # Verify CSP headers permit ReDoc workers and scripts
+        csp = resp_redoc.headers.get("Content-Security-Policy", "")
+        assert "worker-src 'self' blob:" in csp
+        assert "child-src 'self' blob:" in csp
+        assert "https://cdn.jsdelivr.net" in csp
 
         # 3. OpenAPI schema at /openapi.json
         resp_openapi = await client.get("/openapi.json")
@@ -52,6 +66,11 @@ async def test_docs_endpoints_available_under_production_settings() -> None:
 
             resp_redoc = await client.get("/redoc")
             assert resp_redoc.status_code == 200
+            assert (
+                "https://cdn.jsdelivr.net/npm/redoc@2/bundles/redoc.standalone.js"
+                in resp_redoc.text
+            )
+            assert "fonts.googleapis.com" not in resp_redoc.text
 
             resp_openapi = await client.get("/openapi.json")
             assert resp_openapi.status_code == 200

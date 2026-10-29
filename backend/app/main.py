@@ -60,7 +60,7 @@ def create_app() -> FastAPI:
         description="SHARESPACE - Trusted Institutional Resource Sharing Platform",
         lifespan=lifespan,
         docs_url="/docs" if docs_enabled else None,
-        redoc_url="/redoc" if docs_enabled else None,
+        redoc_url=None,  # Configured explicitly below using stable ReDoc 2.x bundle
         openapi_url="/openapi.json" if docs_enabled else None,
     )
 
@@ -138,6 +138,19 @@ def create_app() -> FastAPI:
             .datetime.now(__import__("datetime").timezone.utc)
             .isoformat(),
         }
+
+    # Explicit ReDoc documentation endpoint using stable ReDoc 2.x
+    if docs_enabled:
+        from fastapi.openapi.docs import get_redoc_html
+
+        @app.get("/redoc", include_in_schema=False)
+        async def redoc_html():
+            return get_redoc_html(
+                openapi_url=app.openapi_url or "/openapi.json",
+                title=f"{settings.APP_NAME} - ReDoc",
+                redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@2/bundles/redoc.standalone.js",
+                with_google_fonts=False,
+            )
 
     # API router will be included here
     from app.api.router import api_router
