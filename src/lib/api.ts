@@ -47,21 +47,28 @@ const API_MODE = import.meta.env.VITE_API_MODE || 'mock';
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
 async function liveFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('sharespace_token') : null;
+  const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
   const res = await fetch(`${API_BASE_URL}/api/v1${path}`, {
     ...options,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders,
       ...(options?.headers || {}),
     },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const errObj = data?.error || {
-      code: `HTTP_${res.status}`,
-      message: data?.detail || res.statusText || 'Request failed',
-    };
-    throw new MockApiError(res.status, errObj.code, errObj.message, errObj.details);
+    const errDetail = typeof data?.detail === 'object' && !Array.isArray(data?.detail)
+      ? data.detail
+      : {
+          code: `HTTP_${res.status}`,
+          message: typeof data?.detail === 'string' ? data.detail : (res.statusText || 'Request failed'),
+        };
+    const errObj = data?.error || errDetail;
+    throw new MockApiError(res.status, errObj.code || `HTTP_${res.status}`, errObj.message || 'Request failed', errObj.details);
   }
   return data as T;
 }
@@ -89,10 +96,14 @@ export const api = {
 
   async demoLogin(userId: string): Promise<{ user: User; organization: Organization }> {
     if (API_MODE === 'live') {
-      return liveFetch('/auth/demo-login', {
+      const res = await liveFetch<{ user: User; organization: Organization; token?: string }>('/auth/demo-login', {
         method: 'POST',
         body: JSON.stringify({ userId }),
       });
+      if (res.token && typeof window !== 'undefined') {
+        localStorage.setItem('sharespace_token', res.token);
+      }
+      return res;
     }
     const db = await getDb();
     const user = db.users.find((u) => u.id === userId);
@@ -108,6 +119,10 @@ export const api = {
   },
 
   async resetDemoData(): Promise<void> {
+    if (API_MODE === 'live') {
+      await liveFetch('/auth/reset-demo', { method: 'POST' });
+      return;
+    }
     await resetDemoDatabase();
   },
 
@@ -388,6 +403,12 @@ export const api = {
     end: string;
     userId?: string;
   }): Promise<EligibilityEvaluationResult> {
+    if (API_MODE === 'live') {
+      return liveFetch('/bookings/eligibility-check', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      });
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
     const resource = db.resources.find((r) => r.id === params.resourceId);
@@ -562,6 +583,9 @@ export const api = {
       }
     >
   > {
+    if (API_MODE === 'live') {
+      return liveFetch('/bookings/org');
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
     requireRole(actor, ['OWNER', 'MANAGER', 'ADMIN'], 'View organisation bookings');
@@ -1172,6 +1196,23 @@ export const api = {
     booking?: Booking;
     attachments: Attachment[];
   }> {
+    if (API_MODE === 'live') {
+      const incident = await liveFetch<Incident>(`/incidents/${incidentId}`);
+      const res = await liveFetch<{ resource: Resource }>(`/resources/${incident.resourceId}`);
+      let booking: Booking | undefined;
+      try {
+        const bkgRes = await liveFetch<{ booking: Booking }>(`/bookings/${incident.bookingId}`);
+        booking = bkgRes.booking;
+      } catch {
+        // booking might be optional or inaccessible
+      }
+      return {
+        incident,
+        resource: res.resource,
+        booking,
+        attachments: [],
+      };
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
     const incident = db.incidents.find((i) => i.id === incidentId);
@@ -1284,6 +1325,13 @@ export const api = {
   },
 
   async addIncidentComment(incidentId: string, message: string): Promise<Incident> {
+    if (API_MODE === 'live') {
+      await liveFetch(`/incidents/${incidentId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      });
+      return liveFetch<Incident>(`/incidents/${incidentId}`);
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
     const incident = db.incidents.find((i) => i.id === incidentId);
@@ -1450,12 +1498,18 @@ export const api = {
   },
 
   async simulateTamper(): Promise<{ tamperedSeq: number }> {
+    if (API_MODE === 'live') {
+      return liveFetch('/audit-events/simulate-tamper', { method: 'POST' });
+    }
     const actor = await getAuthenticatedActor();
     requireRole(actor, ['ADMIN', 'MANAGER'], 'Simulate ledger tamper');
     return simulateLedgerTamper(actor.organizationId);
   },
 
   async repairLedger(): Promise<LedgerVerificationResult> {
+    if (API_MODE === 'live') {
+      return liveFetch('/audit-events/repair', { method: 'POST' });
+    }
     const actor = await getAuthenticatedActor();
     requireRole(actor, ['ADMIN', 'MANAGER'], 'Repair demo ledger chain');
     return repairOrganizationLedgerChain(actor.organizationId);
@@ -1712,6 +1766,12 @@ export const api = {
   },
 
   async createAssetForResource(resourceId: string, assetTag: string, serialNumber: string): Promise<Asset> {
+    if (API_MODE === 'live') {
+      return liveFetch(`/resources/${resourceId}/assets`, {
+        method: 'POST',
+        body: JSON.stringify({ assetTag, serialNumber }),
+      });
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
     requireRole(actor, ['OWNER', 'MANAGER', 'ADMIN'], 'Add asset unit');
@@ -1776,6 +1836,10 @@ export const api = {
   },
 
   async markAllNotificationsRead(): Promise<void> {
+    if (API_MODE === 'live') {
+      await liveFetch('/notifications/read-all', { method: 'POST' });
+      return;
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
     const nowIso = new Date().toISOString();
@@ -1793,6 +1857,9 @@ export const api = {
     trainings: TrainingRecord[];
     organization: Organization;
   }> {
+    if (API_MODE === 'live') {
+      return liveFetch('/admin/users');
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
     requireRole(actor, ['ADMIN', 'MANAGER', 'OWNER'], 'View organisation user directory');
@@ -1809,6 +1876,9 @@ export const api = {
     trainings: TrainingRecord[];
     usageByResource: Array<{ resourceId: string; resourceName: string; hoursUsed7d: number }>;
   }> {
+    if (API_MODE === 'live') {
+      return liveFetch('/profile/data');
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
     const organization = db.organizations.find((o) => o.id === actor.organizationId)!;
@@ -1831,6 +1901,12 @@ export const api = {
   },
 
   async updateUserRoles(userId: string, roles: Role[], reason: string): Promise<User> {
+    if (API_MODE === 'live') {
+      return liveFetch(`/admin/users/${userId}/roles`, {
+        method: 'PATCH',
+        body: JSON.stringify({ roles, reason }),
+      });
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
     requireRole(actor, ['ADMIN'], 'Modify user role assignments');
@@ -1868,6 +1944,12 @@ export const api = {
     source: string,
     reason: string
   ): Promise<TrainingRecord> {
+    if (API_MODE === 'live') {
+      return liveFetch(`/admin/users/${userId}/trainings`, {
+        method: 'POST',
+        body: JSON.stringify({ trainingType, label, status, source, reason }),
+      });
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
     requireRole(actor, ['ADMIN', 'MANAGER', 'OWNER'], 'Verify training record');
@@ -1916,6 +1998,12 @@ export const api = {
   },
 
   async requestTrainingEnrollment(trainingType: string, label: string): Promise<TrainingRecord> {
+    if (API_MODE === 'live') {
+      return liveFetch('/profile/training/request', {
+        method: 'POST',
+        body: JSON.stringify({ trainingType, label }),
+      });
+    }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
 

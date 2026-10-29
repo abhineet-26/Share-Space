@@ -26,6 +26,7 @@ from app.schemas.auth import UserRead
 from app.schemas.policy import (
     PolicyActivateRequest,
     PolicyCreate,
+    PolicyPreviewPayload,
     PolicyPreviewResponse,
     PolicyRead,
     PolicyVersionCreate,
@@ -312,59 +313,91 @@ async def activate_policy_version(
 
 
 @router.post(
+    "/preview",
+    response_model=PolicyPreviewResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Simulate policy activation dry-run comparing before vs after against sample resource",
+)
+@router.post(
     "/{policy_id}/preview",
     response_model=PolicyPreviewResponse,
     status_code=status.HTTP_200_OK,
     summary="Simulate policy activation dry-run comparing before vs after against sample resource",
 )
 async def preview_policy_activation(
-    policy_id: str,
-    payload: PolicyActivateRequest,
-    _current_user: Annotated[
+    payload: PolicyPreviewPayload,
+    current_user: Annotated[
         User,
         Depends(require_roles([Role.MANAGER, Role.ADMIN], "Preview policy simulation")),
     ],
     session: Annotated[AsyncSession, Depends(get_db)],
+    policy_id: str | None = None,
 ) -> PolicyPreviewResponse:
-    policy = await session.get(Policy, policy_id)
-    if not policy:
-        raise NotFoundError("Policy", policy_id)
+    target_policy_id = policy_id or payload.policy_id
+    policy = None
+    if target_policy_id:
+        policy = await session.get(Policy, target_policy_id)
 
-    # Find candidate draft version
-    v_stmt = select(PolicyVersion).where(
-        PolicyVersion.policy_id == policy_id,
-        PolicyVersion.version == payload.version,
-    )
-    draft_ver = (await session.execute(v_stmt)).scalar_one_or_none()
-    if not draft_ver:
-        raise NotFoundError(f"PolicyVersion v{payload.version}", policy_id)
+    draft_ver = None
+    if policy and payload.version:
+        # Find candidate draft version
+        v_stmt = select(PolicyVersion).where(
+            PolicyVersion.policy_id == policy.id,
+            PolicyVersion.version == payload.version,
+        )
+        draft_ver = (await session.execute(v_stmt)).scalar_one_or_none()
+    elif payload.draft_definition:
+        draft_ver = PolicyVersion(
+            id="pv_simulated_draft",
+            organization_id=current_user.organization_id,
+            policy_id=policy.id if policy else "pol_simulated",
+            version=payload.version or 99,
+            definition=payload.draft_definition,
+            effective_from=datetime.now(UTC),
+            created_by=current_user.id,
+            created_by_name=current_user.name,
+            reason="Simulation dry run",
+        )
 
     # Pick a representative sample resource and user within this organization
-    res_stmt = (
-        select(Resource)
-        .options(
-            selectinload(Resource.requirements),
-            selectinload(Resource.availability),
-        )
-        .where(Resource.organization_id == policy.organization_id)
-        .limit(1)
-    )
-    sample_res = (await session.execute(res_stmt)).scalar_one_or_none()
-    if not sample_res:
-        raise NotFoundError("Resource for simulation", policy.organization_id)
+    org_id = policy.organization_id if policy else current_user.organization_id
 
-    user_stmt = (
-        select(User)
-        .where(User.organization_id == policy.organization_id)
-        .limit(1)
-    )
-    sample_user = (await session.execute(user_stmt)).scalar_one_or_none()
+    sample_res = None
+    if payload.sample_resource_id:
+        sample_res = await session.get(Resource, payload.sample_resource_id)
+
+    if not sample_res:
+        res_stmt = (
+            select(Resource)
+            .options(
+                selectinload(Resource.requirements),
+                selectinload(Resource.availability),
+            )
+            .where(Resource.organization_id == org_id)
+            .limit(1)
+        )
+        sample_res = (await session.execute(res_stmt)).scalar_one_or_none()
+    if not sample_res:
+        raise NotFoundError("Resource for simulation", org_id)
+
+    sample_user = None
+    if payload.sample_user_id:
+        sample_user = await session.get(User, payload.sample_user_id)
+
     if not sample_user:
-        raise NotFoundError("User for simulation", policy.organization_id)
+        user_stmt = (
+            select(User)
+            .where(User.organization_id == org_id)
+            .limit(1)
+        )
+        sample_user = (await session.execute(user_stmt)).scalar_one_or_none()
+    if not sample_user:
+        raise NotFoundError("User for simulation", org_id)
 
     now = datetime.now(UTC)
     sim_start = now + timedelta(days=1, hours=2)
-    sim_end = sim_start + timedelta(hours=4)
+    duration_hrs = float(payload.sample_duration_hours or 4.0)
+    sim_end = sim_start + timedelta(hours=duration_hrs)
 
     # 1. Evaluate with current active policies (before)
     before_result = await evaluate_eligibility(
