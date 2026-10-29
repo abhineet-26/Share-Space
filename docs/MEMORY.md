@@ -177,6 +177,9 @@ If the core lifecycle is incomplete at H24, defer AI and analytics.
 - 2026-10-29: Phase 0 completed — repository, documentation, frontend, and skill audit complete. Phase 0 deliverables created: BACKEND_PLAN.md, CONTRACT.md, AGENT_USAGE.md, IMPLEMENTATION_STATUS.md.
 - 2026-10-29: Phase 01 completed — FastAPI foundation, lifespan, JSON structured logging, error handlers, /healthz and /readyz endpoints, CI workflow, Makefile.
 - 2026-10-29: Phase 02 completed — PostgreSQL domain models, Alembic migrations (tables, check constraints, btree_gist exclusion constraint on booking, ledger modification trigger, fail-closed RLS on all 17 tenant tables), transaction-local tenant context binding, deterministic seed script for 2 orgs (org_nit, org_harbour), 7 users, 11 resources, policies, bookings across all states, condition reports, incidents, outbox events, and tamper-evident Trust Ledger hash chains. 15 automated integration tests pass under the restricted runtime DB role (sharespace_app).
+- 2026-10-29: Phase 03 completed — Authentication, sessions, JWT, cookies, tenant RLS binding on auth, server-side role permissions (`require_roles`), demo login, admin role updates with required governance reasons, tamper-evident ledger auditing of role modifications, 26 integration tests passing.
+- 2026-10-29: Phase 04 completed — Resource catalogue, search, filters, specifications, auto-provisioned assets with unguessable QR tokens, resource publish lifecycle transitions with governance reasons, calendar availability, waitlist queries, QR asset scanning with contextual permitted actions, 35 integration tests passing.
+- 2026-10-29: Phase 05 completed — Policy engine, versioning, reason-bound policy activation, simulation preview against historical scenarios, and deterministic 8-check eligibility evaluation engine with clear institutional reasons and actionable next steps. 43 integration tests passing.
 
 Append dated decisions below as the project evolves.
 
@@ -187,6 +190,7 @@ Append dated decisions below as the project evolves.
 **Phase 02: COMPLETE** — Tenant-safe schema, Alembic migrations, PostgreSQL RLS, exclusion constraints, tamper-evident ledger, deterministic seed data, 15 integration tests passing.
 **Phase 03: COMPLETE** — Authentication, sessions, JWT, cookies, tenant RLS binding on auth, server-side role permissions (`require_roles`), demo login, admin role updates with required governance reasons, tamper-evident ledger auditing of role modifications, 26 integration tests passing.
 **Phase 04: COMPLETE** — Resource catalogue, search, filters, specifications, auto-provisioned assets with unguessable QR tokens, resource publish lifecycle transitions with governance reasons, calendar availability, waitlist queries, QR asset scanning with contextual permitted actions, 35 integration tests passing.
+**Phase 05: COMPLETE** — Policy engine, versioning, reason-bound policy activation, simulation preview against historical scenarios, and deterministic 8-check eligibility evaluation engine with clear institutional reasons and actionable next steps. 43 integration tests passing.
 
 **Implemented (Backend & Database):**
 - PostgreSQL 18 schema with 18 tables and Alembic migrations from empty to head
@@ -198,13 +202,15 @@ Append dated decisions below as the project evolves.
 - Auth Endpoints: `POST /api/v1/auth/demo-login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `PATCH/PUT /api/v1/admin/users/{user_id}/roles`
 - Resource Endpoints: `GET /api/v1/resources` (search, category, status, supervision, training filters), `GET /api/v1/resources/{id}` (specs, assets, active policies, waitlist count), `POST /api/v1/resources` (creates listing + default asset + ledger event), `PATCH/PUT /api/v1/resources/{id}` (updates listing + ledger event), `POST /api/v1/resources/{id}/publish` (reason-bound status changes + ledger event), `GET /api/v1/resources/{id}/availability`, `GET /api/v1/resources/{id}/waitlist`, `POST /api/v1/resources/{id}/assets` (registers unit + unguessable QR token + ledger event)
 - QR Asset Scanning Endpoint: `GET /api/v1/assets/scan/{qr_token}` (evaluates actor's active bookings, returns contextual actions like `CHECK_IN`, `RETURN`, `STAFF_CONFIRM_RETURN`, `VIEW_RESOURCE`, and institutional explanation)
-- Tamper-evident Trust Ledger audit event generation on administrative role updates, resource creation, resource updates, status changes, and asset registrations
+- Policy Endpoints: `GET /api/v1/policies`, `GET /api/v1/policies/{id}`, `POST /api/v1/policies` (admin/manager + ledger event), `POST /api/v1/policies/{id}/versions` (admin/manager + ledger event), `POST /api/v1/policies/{id}/activate` (admin/manager + reason + ledger event), `POST /api/v1/policies/{id}/preview` (dry-run simulation comparing before/after against real resource and user)
+- Eligibility Evaluation Endpoints: `POST /api/v1/bookings/eligibility-check` and `POST /api/v1/eligibility/evaluate` (evaluates account verification, institutional membership, resource operational status, resource-specific verified training records, booking time window validity, calendar concurrency conflicts with confirmed bookings, rolling window usage caps, single-session duration limits, and supervision/human review requirements)
+- Tamper-evident Trust Ledger audit event generation on administrative role updates, resource creation, resource updates, status changes, asset registrations, policy creation, policy version creation, and policy activations
 - PostgreSQL exclusion constraint (`btree_gist`) preventing overlapping confirmed bookings
 - Check constraint `start_at < end_at`
 - Database trigger `trg_protect_ledger_events` preventing application-level UPDATE and DELETE on historical ledger events
 - Canonical deterministic JSON serialization and SHA-256 hash chaining for Trust Ledger
 - Deterministic seed script `scripts/seed.py` matching frontend demo scenarios across 2 institutions
-- 35 automated integration tests covering RLS isolation, fail-closed behavior, cross-tenant denial, overlap rejection, migration downgrade/upgrade, ledger tamper detection, seed repeatability, authentication, role enforcement matrix, governance reason requirement, resource catalogue, filtering, asset creation, and QR resolution
+- 43 automated integration tests covering RLS isolation, fail-closed behavior, cross-tenant denial, overlap rejection, migration downgrade/upgrade, ledger tamper detection, seed repeatability, authentication, role enforcement matrix, governance reason requirement, resource catalogue, filtering, asset creation, QR resolution, policy versioning, preview simulation, and comprehensive eligibility checks
 
 **Implemented (in mock/frontend):**
 - Complete React 19 frontend with 25+ screens, role guards, responsive design
@@ -215,4 +221,4 @@ Append dated decisions below as the project evolves.
 - QR asset scan flow with contextual actions
 - All API contracts defined in `src/lib/api.ts` and `CONTRACT.md`
 
-**Next task:** Phase 05 — Policy Engine, Declarative Rules, Versioning, and Deterministic Eligibility Evaluation
+**Next task:** Phase 06 — Booking Lifecycle State Machine, Idempotent Creation, Requests, and Authorised Decisions

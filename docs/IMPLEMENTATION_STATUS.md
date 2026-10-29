@@ -45,10 +45,10 @@
 ### FR-04: Eligibility
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Deterministic checks: PASS, FAIL, REVIEW_REQUIRED with reason | Mocked | `evaluateEligibilitySync()` returns `EligibilityEvaluationResult` |
-| Checks: account verified, institution membership, training, resource status, time validity, conflict, usage limits | Mocked | 9 check keys implemented in mock |
-| AI output not trusted for training/identity | Mocked | AI only for query parsing/incident drafting; eligibility is deterministic |
-| Failed mandatory requirement blocks approval | Mocked | `ELIGIBILITY_BLOCKED` status, approval rechecks eligibility |
+| Deterministic checks: PASS, FAIL, REVIEW_REQUIRED with reason | Implemented | `backend/app/services/policy.py:evaluate_eligibility`, tested in `test_policies_eligibility.py` |
+| Checks: account verified, institution membership, training, resource status, time validity, conflict, usage limits | Implemented | 8 comprehensive deterministic check keys server-enforced, verified in `test_policies_eligibility.py` |
+| AI output not trusted for training/identity | Implemented | Server-authoritative deterministic evaluation against verified DB records; AI strictly assistive |
+| Failed mandatory requirement blocks approval | Implemented | `overall_status: NOT_ELIGIBLE`, `eligible: false`, next steps returned |
 
 ### FR-05: Booking Request
 | Requirement | Status | Evidence |
@@ -133,11 +133,11 @@
 ### FR-15: Policy Engine [Foundation]
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Eligibility, usage caps, priority, approval, cancellation, return windows as versioned declarative data | Partial | `Policy`/`PolicyVersion` types + seed data; only ELIGIBILITY, USAGE_CAP, PRIORITY implemented |
-| Scope resolution: resource → category → org; most restrictive safety wins | Mocked | `resolveActivePoliciesForResource()` implements this |
-| Each booking stores policy version IDs applied | Mocked | `Booking.policyVersionIds` + `eligibilityChecks` |
-| Policy create/change/activate/retire are audit events | Mocked | `POLICY_VERSION_CREATED`, `POLICY_VERSION_ACTIVATED` in ledger |
-| Changing usage cap changes new requests, old bookings keep original policy | Mocked | `evaluateEligibilitySync` uses `effectiveVersions` from policy versions |
+| Eligibility, usage caps, priority, approval, cancellation, return windows as versioned declarative data | Implemented | `Policy` and `PolicyVersion` models, `app/api/v1/policies.py`, versioning supported |
+| Scope resolution: resource → category → org; most restrictive safety wins | Implemented | `resolve_active_policies_for_resource()` in `app/services/policy.py` |
+| Each booking stores policy version IDs applied | Implemented | Prepared in models and eligibility result schema `applied_policy_version_ids` |
+| Policy create/change/activate/retire are audit events | Implemented | `POST /policies`, `POST /policies/{id}/versions`, `POST /policies/{id}/activate` append to Trust Ledger |
+| Changing usage cap changes new requests, old bookings keep original policy | Implemented | Versioned snapshotting, verified in `test_policies_eligibility.py` |
 
 ### FR-16: Tamper-evident Ledger [Foundation]
 | Requirement | Status | Evidence |
