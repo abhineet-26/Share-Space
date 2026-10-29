@@ -68,10 +68,10 @@
 ### FR-07: Fair Allocation and Waitlist
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Published configurable policy for competing requests | Mocked | `pol_priority_fairness` + `pol_3d_cap`, `pol_cam_cap` |
-| Waitlist with transparent queue ordering | Mocked | `WAITLISTED` status, `waitlistPosition`, `getResourceWaitlist()` |
-| Rolling usage limits for high-demand resources | Mocked | `usage_limit` check with `windowDays`, `maxHoursPerUser` |
-| Manager override with recorded reason | Mocked | `isPolicyOverride` flag + reason on decision |
+| Published configurable policy for competing requests | Implemented | `pol_nit_elec_general`, `pol_nit_high_demand_cap`, priority tiers evaluated in `create_booking` |
+| Waitlist with transparent queue ordering | Implemented | Deterministic `waitlist_position` ordering, `GET /resources/{id}/waitlist` |
+| Rolling usage limits for high-demand resources | Implemented | `get_rolling_usage_hours` in `backend/app/services/policy.py` checks usage over windowDays |
+| Manager override with recorded reason | Implemented | `is_policy_override` flag with mandatory reason in `decide_booking` recorded to Trust Ledger |
 
 ### FR-08: Check-in and Condition Report
 | Requirement | Status | Evidence |

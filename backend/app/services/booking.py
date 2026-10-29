@@ -274,6 +274,7 @@ async def cancel_booking(
         )
 
     validate_transition(booking.status, BookingStatus.CANCELLED)
+    was_confirmed = booking.status in [BookingStatus.APPROVED]
 
     booking.status = BookingStatus.CANCELLED
     booking.decision_reason = reason.strip() or "Cancelled by user."
@@ -292,7 +293,68 @@ async def cancel_booking(
         metadata={"resourceId": booking.resource_id},
     )
 
+    if was_confirmed:
+        await promote_next_waitlisted_if_slot_open(
+            session=session,
+            resource_id=booking.resource_id,
+            freed_start=booking.start_at,
+            freed_end=booking.end_at,
+            actor=actor,
+        )
+
     return booking
+
+
+async def promote_next_waitlisted_if_slot_open(
+    session: AsyncSession,
+    resource_id: str,
+    freed_start: datetime,
+    freed_end: datetime,
+    actor: User,
+) -> Booking | None:
+    """Promote the highest priority waitlisted booking when a confirmed slot is released."""
+    stmt = (
+        select(Booking)
+        .where(
+            Booking.resource_id == resource_id,
+            Booking.status == BookingStatus.WAITLISTED,
+            Booking.start_at < freed_end,
+            Booking.end_at > freed_start,
+        )
+        .order_by(Booking.waitlist_position.asc().nulls_last(), Booking.created_at.asc())
+    )
+    res = await session.execute(stmt)
+    waitlisted = list(res.scalars().all())
+
+    if not waitlisted:
+        return None
+
+    promoted = waitlisted[0]
+    promoted.status = BookingStatus.PENDING_REVIEW
+    promoted.waitlist_position = None
+    promoted.waitlist_reason = "Promoted from #1 on waitlist after conflicting reservation was released."
+
+    # Re-index remaining waitlisted requests for this resource
+    for idx, w in enumerate(waitlisted[1:]):
+        w.waitlist_position = idx + 1
+
+    await session.flush()
+
+    actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
+    await append_ledger_event(
+        session=session,
+        organization_id=promoted.organization_id,
+        actor_id=actor.id,
+        actor_name=actor.name,
+        actor_role=actor_roles[0] if actor_roles else "SYSTEM",
+        action="WAITLIST_PROMOTED",
+        entity_type=LedgerEntityType.BOOKING,
+        entity_id=promoted.id,
+        reason="Slot released; top waitlisted request promoted to PENDING_REVIEW.",
+        metadata={"resourceId": resource_id, "promotedUserId": promoted.user_id},
+    )
+
+    return promoted
 
 
 async def decide_booking(
