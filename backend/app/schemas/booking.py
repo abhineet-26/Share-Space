@@ -122,6 +122,16 @@ class BookingDecisionRequest(CamelModel):
     reason: str = Field(..., min_length=5)
     is_policy_override: bool = False
 
+    @model_validator(mode="before")
+    @classmethod
+    def reconcile_aliases(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "status" in data and "decision" not in data:
+                data["decision"] = data["status"]
+            if "decisionReason" in data and "reason" not in data:
+                data["reason"] = data["decisionReason"]
+        return data
+
 
 class BookingDetailResponse(CamelModel):
     booking: BookingRead

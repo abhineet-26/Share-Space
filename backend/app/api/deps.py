@@ -13,14 +13,14 @@ from app.models import Role, User
 
 
 def get_token_from_request(request: Request) -> str:
-    """Extract JWT token from session cookie or Authorization header."""
-    cookie_token = request.cookies.get("sharespace_session")
-    if cookie_token:
-        return cookie_token
-
+    """Extract JWT token from Authorization header or fallback to session cookie."""
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         return auth_header[7:].strip()
+
+    cookie_token = request.cookies.get("sharespace_session")
+    if cookie_token:
+        return cookie_token
 
     raise UnauthorizedError("Authentication required. Please sign in.")
 

@@ -16,12 +16,12 @@ class PhotoInput(CamelModel):
 
 
 class ConditionReportCreate(CamelModel):
-    stage: str
+    stage: str = "CHECK_IN"
     condition: ConditionLevel
     accessories: list[dict[str, Any]] = []
     notes: str = ""
     photos: list[PhotoInput] = []
-    acknowledged_rules: bool = Field(..., description="Must acknowledge usage rules")
+    acknowledged_rules: bool = Field(default=False, description="Must acknowledge usage rules")
     incident_category: str | None = None
     incident_description: str | None = None
 

@@ -301,6 +301,7 @@ async def check_in(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> Booking:
+    payload.stage = "CHECK_IN"
     return await check_in_booking_service(session, current_user, booking_id, payload)
 
 
@@ -315,6 +316,7 @@ async def return_booking_endpoint(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> Booking:
+    payload.stage = "RETURN"
     return await return_booking_service(session, current_user, booking_id, payload)
 
 

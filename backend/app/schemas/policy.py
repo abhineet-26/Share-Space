@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from app.models import (
     CheckStatus,
@@ -93,7 +93,17 @@ class PolicyVersionCreate(CamelModel):
 
 class PolicyActivateRequest(CamelModel):
     version: int
-    reason: str
+    reason: str = ""
+
+
+class PolicyPreviewPayload(CamelModel):
+    policy_id: str | None = Field(default=None, alias="policyId")
+    version: int | None = None
+    reason: str | None = ""
+    draft_definition: dict[str, Any] | None = Field(default=None, alias="draftDefinition")
+    sample_user_id: str | None = Field(default=None, alias="sampleUserId")
+    sample_resource_id: str | None = Field(default=None, alias="sampleResourceId")
+    sample_duration_hours: float | None = Field(default=4.0, alias="sampleDurationHours")
 
 
 class EligibilityCheck(CamelModel):

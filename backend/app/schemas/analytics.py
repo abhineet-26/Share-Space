@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pydantic import Field
+
 from app.schemas.auth import OrganizationRead, UserRead
 from app.schemas.base import CamelModel
 
@@ -53,6 +55,14 @@ class TrainingRecordRead(CamelModel):
     source: str
     verified_by: str | None = None
     expires_at: str | None = None
+
+
+class VerifyTrainingRequest(CamelModel):
+    training_type: str = Field(..., alias="trainingType")
+    label: str
+    status: str
+    source: str
+    reason: str
 
 
 class AdminUsersResponse(CamelModel):
