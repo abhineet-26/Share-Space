@@ -145,6 +145,9 @@ async def verify_ledger_chain(
     organization_id: str,
 ) -> dict[str, Any]:
     """Verify integrity of the tamper-evident hash chain for an organization."""
+    from app.core.database import set_tenant_context
+
+    await set_tenant_context(session, organization_id)
     now = datetime.now(UTC)
     _LAST_VERIFIED_AT[organization_id] = now
 
@@ -223,7 +226,10 @@ async def verify_ledger_chain(
 
 async def simulate_ledger_tamper(organization_id: str) -> int:
     """Deliberately modify a middle event in the organization's chain for demo tamper-verification testing."""
+    from app.core.database import set_tenant_context
+
     async with migration_session_factory() as db:
+        await set_tenant_context(db, organization_id)
         stmt = (
             select(LedgerEvent)
             .where(LedgerEvent.organization_id == organization_id)
@@ -257,7 +263,10 @@ async def simulate_ledger_tamper(organization_id: str) -> int:
 
 async def repair_ledger_chain(organization_id: str) -> dict[str, Any]:
     """Recompute the hash chain for all events in the organization sequentially (demo restore function)."""
+    from app.core.database import set_tenant_context
+
     async with migration_session_factory() as db:
+        await set_tenant_context(db, organization_id)
         stmt = (
             select(LedgerEvent)
             .where(LedgerEvent.organization_id == organization_id)

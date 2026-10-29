@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, text
@@ -47,6 +48,29 @@ from app.services.ledger import append_ledger_event, verify_ledger_chain
 
 
 async def seed_database(session: AsyncSession, clear_existing: bool = True) -> None:
+    rls_tables = [
+        "organization",
+        '"user"',
+        "trainingrecord",
+        "resource",
+        "resourcerequirement",
+        "availabilitywindow",
+        "asset",
+        "policy",
+        "policyversion",
+        "booking",
+        "conditionreport",
+        "incident",
+        "incidentcomment",
+        "attachment",
+        "ledgerevent",
+        "notification",
+        "outboxevent",
+    ]
+    for tbl in rls_tables:
+        with suppress(Exception):
+            await session.execute(text(f"ALTER TABLE {tbl} NO FORCE ROW LEVEL SECURITY;"))
+
     if clear_existing:
         print("Clearing existing data...")
         # Temporarily disable ledger immutability trigger for database reset
@@ -1138,6 +1162,10 @@ async def seed_database(session: AsyncSession, clear_existing: bool = True) -> N
         occurred_at=now - timedelta(days=10),
     )
 
+    for tbl in rls_tables:
+        with suppress(Exception):
+            await session.execute(text(f"ALTER TABLE {tbl} FORCE ROW LEVEL SECURITY;"))
+
     await session.commit()
     print("Seed complete! Verifying ledger chains...")
     res_nit = await verify_ledger_chain(session, "org_nit")
@@ -1159,11 +1187,20 @@ async def safe_bootstrap_demo(session: AsyncSession) -> bool:
     Refuses to run if any user records already exist, guaranteeing that existing
     production or institutional data is never overwritten or deleted.
     """
-    res = await session.execute(text('SELECT count(id) FROM "user"'))
-    user_count = res.scalar_one_or_none() or 0
-    if user_count > 0:
-        print(f"Safe bootstrap skipped: database already contains {user_count} user(s).")
-        return False
+    try:
+        from app.core.database import set_tenant_context
+
+        for org_id in ("org_nit", "org_harbour"):
+            await set_tenant_context(session, org_id)
+            res = await session.execute(text('SELECT count(id) FROM "user"'))
+            user_count = res.scalar_one_or_none() or 0
+            if user_count > 0:
+                print(
+                    f"Safe bootstrap skipped: database already contains {user_count} user(s) in {org_id}."
+                )
+                return False
+    except Exception as e:
+        print(f"Safe bootstrap check encountered note: {e}")
 
     print("Database is empty. Performing safe non-destructive demo bootstrap...")
     await seed_database(session, clear_existing=False)

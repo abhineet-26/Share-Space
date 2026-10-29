@@ -131,6 +131,18 @@ SYNTHETIC_DEMO_PERSONAS = [
     ),
 ]
 
+KNOWN_DEMO_ORGS: list[str] = ["org_nit", "org_harbour"]
+
+DEMO_USER_ORG_MAP: dict[str, str] = {
+    "usr_aarav": "org_nit",
+    "usr_diya": "org_nit",
+    "usr_kabir": "org_nit",
+    "usr_meera": "org_nit",
+    "usr_ravi": "org_nit",
+    "usr_priya": "org_nit",
+    "usr_rohan": "org_harbour",
+}
+
 
 @router.get(
     "/auth/demo-personas",
@@ -148,22 +160,35 @@ async def list_demo_personas() -> DemoPersonasResponse:
         )
 
     try:
+        from app.core.database import set_tenant_context
+
         async with migration_session_factory() as session:
-            res = await session.execute(
-                select(User).where(User.demo_persona_note.is_not(None)).order_by(User.id)
-            )
-            users = list(res.scalars().all())
-            if not users:
+            # Check if any demo user exists across known orgs
+            needs_bootstrap = True
+            for org_id in KNOWN_DEMO_ORGS:
+                await set_tenant_context(session, org_id)
+                res = await session.execute(select(User).limit(1))
+                if res.scalar_one_or_none() is not None:
+                    needs_bootstrap = False
+                    break
+
+            if needs_bootstrap:
                 from scripts.seed import safe_bootstrap_demo
 
                 await safe_bootstrap_demo(session)
-                res = await session.execute(
+
+            users: list[User] = []
+            orgs: list[Organization] = []
+            for org_id in KNOWN_DEMO_ORGS:
+                await set_tenant_context(session, org_id)
+                o = await session.get(Organization, org_id)
+                if o:
+                    orgs.append(o)
+                u_res = await session.execute(
                     select(User).where(User.demo_persona_note.is_not(None)).order_by(User.id)
                 )
-                users = list(res.scalars().all())
+                users.extend(u_res.scalars().all())
 
-            org_res = await session.execute(select(Organization).order_by(Organization.id))
-            orgs = list(org_res.scalars().all())
             org_map = {o.id: o.name for o in orgs}
 
             personas = [
@@ -221,18 +246,35 @@ async def demo_login(
 
     user = None
     org = None
+    target_org_id = DEMO_USER_ORG_MAP.get(payload.user_id)
+
     try:
-        # Use migration session to find demo user across tenants before setting tenant context
+        from app.core.database import set_tenant_context
+
         async with migration_session_factory() as session:
-            user = await session.get(User, payload.user_id)
+            candidate_orgs = [target_org_id] if target_org_id else KNOWN_DEMO_ORGS
+            for org_id in candidate_orgs:
+                if not org_id:
+                    continue
+                await set_tenant_context(session, org_id)
+                user = await session.get(User, payload.user_id)
+                if user:
+                    org = await session.get(Organization, user.organization_id)
+                    break
+
             if not user:
                 from scripts.seed import safe_bootstrap_demo
 
                 bootstrapped = await safe_bootstrap_demo(session)
                 if bootstrapped:
-                    user = await session.get(User, payload.user_id)
-            if user:
-                org = await session.get(Organization, user.organization_id)
+                    for org_id in candidate_orgs:
+                        if not org_id:
+                            continue
+                        await set_tenant_context(session, org_id)
+                        user = await session.get(User, payload.user_id)
+                        if user:
+                            org = await session.get(Organization, user.organization_id)
+                            break
     except Exception:
         user = None
         org = None
@@ -389,16 +431,18 @@ async def get_me(
     all_organizations: list[OrganizationRead] = []
 
     if settings.ENABLE_DEMO_LOGIN:
-        async with migration_session_factory() as admin_session:
-            user_res = await admin_session.execute(
-                select(User).where(User.demo_persona_note.is_not(None)).order_by(User.id)
-            )
-            all_demo_users = [UserRead.model_validate(u) for u in user_res.scalars().all()]
+        from app.core.database import set_tenant_context
 
-            org_res = await admin_session.execute(select(Organization).order_by(Organization.id))
-            all_organizations = [
-                OrganizationRead.model_validate(o) for o in org_res.scalars().all()
-            ]
+        async with migration_session_factory() as admin_session:
+            for org_id in KNOWN_DEMO_ORGS:
+                await set_tenant_context(admin_session, org_id)
+                demo_org = await admin_session.get(Organization, org_id)
+                if demo_org:
+                    all_organizations.append(OrganizationRead.model_validate(demo_org))
+                u_res = await admin_session.execute(
+                    select(User).where(User.demo_persona_note.is_not(None)).order_by(User.id)
+                )
+                all_demo_users.extend([UserRead.model_validate(u) for u in u_res.scalars().all()])
     else:
         all_organizations = [OrganizationRead.model_validate(org)]
 
