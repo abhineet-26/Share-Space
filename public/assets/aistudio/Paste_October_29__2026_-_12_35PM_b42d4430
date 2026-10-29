@@ -1,0 +1,465 @@
+# SHARESPACE — Google AI Studio Master Prompt (Frontend, Visual System Hardened)
+
+This version preserves the original product workflows and backend contract while adding strict design-system, anti-template, responsive, accessibility, and implementation acceptance rules. Open Google AI Studio → Build, paste the entire text between START and END as the first prompt. Let AI Studio generate React + TypeScript + Vite; the app must remain ready to connect to the FastAPI backend later through `VITE_API_MODE`. After the first build, send the follow-up prompts one at a time.
+
+--- START OF PROMPT ---
+
+Act as a senior product designer, frontend architect, and implementation-focused engineer. Build the complete frontend of **SHARESPACE** as a working React 18 + strict TypeScript + Vite application using Tailwind CSS, React Router v6, lucide-react, Recharts, and date-fns. This is a multi-screen institutional operations product, not a landing-page exercise or static mockup. Implement the routes, interactions, state transitions, seeded data, mock business rules, and visual system below. A reviewer must be able to complete the core resource-sharing lifecycle without verbal guidance. Follow Section 4’s visual constraints exactly; they outrank your default design instincts and any generated-template tendencies. Do not ask me to make additional design decisions—use this specification as the source of truth.
+
+## 1. Product
+
+SHARESPACE is accountability infrastructure for sharing underused institutional equipment and spaces (college labs, makerspaces, project rooms). Tagline: "Access more. Waste less. Build together."
+
+It is not a simple booking calendar. Every booking is an accountable transaction:
+1. An owner lists a resource with conditions.
+2. A user discovers it and sees eligibility before requesting.
+3. The system runs deterministic eligibility checks with explicit reasons.
+4. An authorised manager approves, rejects, or waitlists, always with a reason.
+5. The user checks in and records the initial condition.
+6. The user returns the item and records the final condition.
+7. Damage, delay, or missing accessories become incident reports reviewed by a human.
+8. Both parties see a complete, tamper-evident history (the Trust Ledger).
+
+Core rules the UI must visibly respect:
+- Eligibility and owner approval are separate concepts.
+- Visibility does not imply permission to book.
+- Every decision shows a human-readable reason and next step.
+- Incident reports are allegations until a human reviewer resolves them. Never show automatic blame or penalties.
+- AI is assistive only. Never show AI making an approval, liability, or penalty decision.
+- Say "tamper-evident history", never "immutable" or "blockchain".
+
+## 2. Tech and architecture requirements
+
+- React 18 + TypeScript (strict), Vite, Tailwind CSS, React Router v6, lucide-react, Recharts, date-fns.
+- Organise code: `src/app` (router, providers), `src/components` (ui primitives and shared), `src/features/{auth,resources,bookings,review,handover,incidents,ledger,policies,assets,notifications,analytics,admin}`, `src/lib` (api client, types, utils), `src/mocks` (seed data and mock server).
+- Create a typed **API client layer** (`src/lib/api.ts`) with one function per endpoint below. It must work in two modes controlled by `VITE_API_MODE`:
+  - `mock` (default): all calls go to an in-memory mock backend (`src/mocks/server.ts`) that implements the real business rules and persists to `localStorage` so refresh keeps state.
+  - `live`: calls `VITE_API_BASE_URL + /api/v1/...` with `fetch`, credentials included, and consistent JSON error handling.
+- The mock backend must enforce rules, not just return canned data: permission checks per role, booking state-machine transitions, overlap prevention (return 409), policy-driven eligibility, usage caps, waitlist promotion on cancellation, and ledger hash chaining.
+- Never trust the UI for permissions: every mock endpoint checks the acting user's role and organisation and returns 401/403/404/409/422 like a real API. The UI also hides or explains disabled actions.
+- All timestamps stored in UTC ISO strings, displayed in the user's local time.
+- No external services required to run. Keep an optional AI helper behind `VITE_ENABLE_AI` (default false) that falls back gracefully to a keyword-based parser.
+
+## 3. Roles and demo accounts
+
+Roles: USER, OWNER, MANAGER, ADMIN. A user may hold several. Provide a **Demo login** screen (shown only because mock mode is on) with one-click accounts. All data is fictional.
+
+Organisation A: "Nilgiri Institute of Technology" (primary demo)
+- Aarav Menon — USER (student, electronics induction COMPLETED, 3D-printer safety training COMPLETED)
+- Diya Rao — USER (student, electronics induction COMPLETED, 3D-printer safety training NOT completed)
+- Kabir Shah — USER (student, heavy user: already near the weekly cap on the camera kit)
+- Dr. Meera Iyer — OWNER (Electronics Department)
+- Ravi Kulkarni — MANAGER (lab technician, handles handover/return and incidents)
+- Priya Nair — ADMIN (policies, roles, oversight)
+
+Organisation B: "Harbour Community Makerspace" with one admin and two resources, used to demonstrate that data from Organisation A is never visible to B. A banner in the admin console shows the current organisation.
+
+## 4. Visual system and art direction — follow exactly
+
+### 4.1 Product-design intent
+
+Design SHARESPACE as a credible institutional operations product used daily by students, lab technicians, resource owners, and administrators. The interface should feel like carefully designed operational software: quiet, precise, dependable, legible, and information-rich. It should not look like a startup landing page, a consumer marketplace, a generic AI-generated SaaS dashboard, or a Dribbble concept.
+
+**Art direction:** restrained editorial utility, inspired by well-designed library systems, university facilities software, and modern professional administration tools. Use strong typographic hierarchy, disciplined alignment, practical tables, clear forms, simple line icons, and real operational detail. Prioritise task completion and decision traceability over decoration.
+
+### 4.2 Hard visual prohibitions
+
+These are non-negotiable. Do not use them anywhere in the application:
+- No gradients of any kind: no background gradients, text gradients, gradient buttons, gradient borders, gradient chart fills, or gradient image placeholders.
+- No pink + blue, purple + blue, cyan + magenta, neon, vaporwave, or stereotypical “AI product” colour palettes.
+- No glassmorphism, frosted-glass panels, glowing borders, blurred colour blobs, aurora backgrounds, floating orbs, mesh gradients, excessive blur, or glowing shadows.
+- No generic “bento grid” dashboard made from many equally sized rounded cards. Do not put every piece of information in its own card.
+- No oversized hero headline, giant decorative icon, fake AI assistant orb, floating command palette as the main visual feature, or marketing-style headline on the signed-in dashboard.
+- No giant pill buttons, excessively rounded cards, bubbly controls, decorative emoji, or random illustrations.
+- No arbitrary decorative charts, meaningless metrics, fake live indicators, fake map panels, fake activity just to fill whitespace, or repeated identical KPI cards.
+- No Lorem ipsum, “Welcome to your dashboard” filler, generic feature copy, or unexplained jargon.
+- No colour-only statuses. No invented trust badges such as “AI verified”, “100% secure”, or “blockchain protected”.
+- Do not invent extra screens, features, or visual flourishes not required by this brief.
+
+If uncertain between a decorative choice and a clearer operational layout, choose the clearer layout. Keep the screen visually calm even when the data is dense.
+
+### 4.3 Exact colour tokens
+
+Use CSS variables/design tokens. Use this palette consistently; do not introduce additional brand colours without a functional reason.
+
+**Light theme**
+- App background: `#F5F5F0` (warm off-white, not pure grey)
+- Main surface: `#FFFFFF`
+- Subtle secondary surface: `#EEF0E9`
+- Primary text: `#202923`
+- Secondary text: `#626D65`
+- Muted/disabled text: `#818A83`
+- Borders and dividers: `#D9DED7`
+- Primary action / brand: `#285443` (deep forest green)
+- Primary hover: `#1E4335`
+- Primary subtle background: `#E6EEE8`
+- Attention/accent: `#A86F20` (muted ochre; use sparingly)
+- Success: `#2F6B4F`
+- Warning: `#8A5B12`
+- Error/danger: `#A23D32`
+- Neutral status: `#59655E`
+
+**Dark theme**
+- App background: `#151B17`
+- Main surface: `#1C241F`
+- Secondary surface: `#242E27`
+- Primary text: `#F0F3EE`
+- Secondary text: `#B5BEB7`
+- Muted text: `#89958D`
+- Borders and dividers: `#39453D`
+- Primary action: `#86AC95` with dark readable text
+- Primary hover: `#9ABCA7`
+- Primary subtle background: `#273B30`
+- Attention/accent: `#D2A15B`
+- Success: `#83B59A`
+- Warning: `#D9AF69`
+- Error/danger: `#E18B80`
+- Neutral status: `#B5BEB7`
+
+Use semantic colours only for status, validation, and meaningful attention. Most of the interface should be neutral. In particular, do not use green as a giant decorative area; reserve it for primary actions, selected navigation, and small status indicators. Avoid pure black and pure white as large page backgrounds. Verify text contrast in both themes against WCAG 2.1 AA.
+
+### 4.4 Typography
+
+- Use `Inter` if already available locally; otherwise use a system stack such as `Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`. Do not require an external font service for the app to run.
+- Base body text: 15–16px, line-height 1.45–1.6. Do not make essential body copy smaller than 14px.
+- Page title: 24–28px, weight 650–700. Section title: 17–20px, weight 600. Card/row title: 15–17px, weight 600. Labels: 13–14px, medium weight. Metadata: 13–14px with adequate contrast.
+- Use sentence case, not Title Case Everywhere. Avoid oversized headings and excessive bold text.
+- Use tabular numerals for time, counts, identifiers, and quantities where supported. Use a monospace font only for hashes, tokens, and technical identifiers.
+- Make text hierarchy carry the design. Do not rely on colour or decorative icons to distinguish everything.
+
+### 4.5 Layout, spacing, and component geometry
+
+- Use a consistent 4px base with spacing values primarily in 8px increments. Align labels, controls, tables, and headings to shared edges.
+- Desktop app shell: fixed/collapsible left sidebar approximately 236–252px wide; top application bar approximately 60–68px high; content area with a maximum width around 1440px and 24–32px page padding on wide screens.
+- Sidebar is a practical navigation rail, not a promotional panel. Keep the wordmark small, active navigation obvious, icons consistent, and the organisation/user switcher near the bottom. Use a thin border between sidebar and content; do not add gradients or ornamental shapes.
+- Page headers should contain a clear title, one-line contextual description where useful, breadcrumbs for deeper pages, and one primary action aligned to the right when the workflow warrants it. Never add arbitrary actions simply to balance the layout.
+- Prefer tables, structured lists, labelled sections, stepper flows, definition lists, side panels, and compact summary strips over card grids. Use a card only when a group of information genuinely needs a visual boundary.
+- Corners: 6px for inputs and small controls; 8px for buttons, menus, and standard panels; 10–12px only for larger dialogs or distinct surfaces. Avoid the default “everything rounded-xl” look.
+- Use 1px borders, separators, and at most a subtle shadow for menus/dialogs. Main content panels should generally rely on surface contrast and borders rather than shadows.
+- Buttons should be rectangular with modest corner radius. Primary actions are solid forest green; secondary actions are white/transparent with a border; destructive actions use restrained red. Do not use gradients or oversized pill styling.
+- Create visual rhythm through whitespace, alignment, type, and dividers—not decorative circles, oversized icons, or empty showcase panels.
+- Do not fill every horizontal inch. Let dense data tables be dense enough to scan, but provide comfortable row height and clear column labels.
+
+### 4.6 Application shell and responsive behaviour
+
+- Desktop (1280px and wider): persistent left sidebar, top bar, page title region, then task-specific content. Do not force all pages into a dashboard layout; each screen should use the layout suited to its task.
+- Tablet: sidebar can collapse to icon rail or drawer; tables may scroll horizontally with sticky first column when helpful.
+- Mobile (375px baseline): compact top bar and a bottom navigation bar for the four most-used destinations, with the rest in an accessible menu sheet. Respect safe-area insets. Do not simply shrink the desktop sidebar or compress a wide table into unreadable cards.
+- On mobile, convert tables into clear stacked rows only when all labels remain visible; otherwise allow deliberate horizontal scrolling with a visible affordance. Forms become single-column. Sticky action bars are acceptable only when they do not cover fields or device keyboard.
+- Check-in, return, QR scan, condition capture, and incident reporting must feel purpose-built for a phone. Keep the main action reachable, touch targets at least 44×44px, photo previews legible, and critical decisions easy to review before submission.
+- At 375px, no horizontal page overflow, clipped labels, overlapping buttons, invisible focus rings, or dialogs wider than the viewport.
+
+### 4.7 Data visualisation
+
+- Use Recharts only for questions the data actually answers. Charts must have useful labels, units, axis ticks, tooltips, and empty states. Provide a text/table equivalent for important information.
+- Use a restrained palette from the product tokens. No gradient fills, rainbow series, excessive grid lines, 3D/pie decoration, fake real-time motion, or chart animation that delays task completion.
+- Prefer simple bars, lines, and a small heatmap where suitable. Every chart title states what is measured; every insight states the evidence and is labelled as a suggestion, not an automated decision.
+- Never show made-up totals that conflict with the seeded records. Counts and charts must derive from the same mock dataset and update when relevant records change.
+
+### 4.8 Imagery and icons
+
+- Use `lucide-react` outline icons with consistent stroke width and size. Use icons to aid recognition; pair them with text for navigation and consequential actions. Do not mix icon families, use emoji as interface icons, or substitute icons for labels.
+- No remote image URLs, external image CDNs, or dependency on network access. For resource thumbnails, create a small set of local SVG illustrations or neutral, category-specific placeholders (electronics instrument, camera kit, workstation, room) with solid neutral backgrounds and restrained line art. No gradient placeholders, random stock photos, or repeated generic coloured rectangles.
+- On a resource detail page, use a consistent gallery frame with the local category illustration and a factual caption where appropriate. Do not pretend an illustration is a photograph of the actual asset.
+- QR codes must be scannable in the generated demo where possible, with a readable asset token beneath each code. A decorative fake QR pattern is not acceptable.
+
+### 4.9 Interaction, motion, and feedback
+
+- Use restrained transitions of approximately 120–180ms for hover, focus, drawers, and small state changes. Respect `prefers-reduced-motion`; avoid parallax, springy motion, looping animation, confetti, and animated counters.
+- Every action that changes data must provide pending, success, and failure feedback. Prevent duplicate submissions. Disable a control only when there is a clear reason, and show that reason next to it or in an accessible tooltip.
+- Confirm consequential actions such as policy activation, role changes, cancellation when a fee/commitment applies, archival, and incident resolution. Ask for a reason when the domain rules require one.
+- Use clear toast messages for transient confirmation and inline messages for errors that need correction. Do not communicate critical information exclusively through a toast.
+- Focus order must follow the visible workflow. Dialogs and drawers trap focus, close predictably, and restore focus to the trigger.
+
+### 4.10 Accessibility and design consistency
+
+- Target WCAG 2.1 AA: semantic landmarks, proper heading order, visible focus indicators, keyboard operability, labelled controls, field errors connected with `aria-describedby`, accessible dialogs/menus with focus management, live regions for toasts, contrast checks, and reduced motion.
+- Status always combines readable text + an icon or shape + colour. Never rely on colour alone.
+- Forms need labels, help text where needed, field-level validation, and keyboard-friendly date/time selection. Use actual buttons/links for actions/navigation rather than clickable generic containers.
+- Provide a complete light theme and dark theme, not merely inverted colours. Persist the user's theme choice and use `prefers-color-scheme` for the initial default.
+- Implement reusable primitives: Button, IconButton, Input, Select, Textarea, DateTimePicker, Badge, StatusPill, Card/Panel, Tabs, Dialog, Drawer, Toast, Tooltip, Skeleton, EmptyState, Stepper, Timeline, DataTable (sortable, filterable, paginated), FilterBar, ConfirmDialog (requires reason when needed), FileDropzone, PhotoCapture, ConditionChecklist, PolicyForm, ChainBadge, QRCode, and ErrorBoundary. Keep the primitives visually consistent; do not create a new style for every screen.
+
+### 4.11 Required page composition patterns
+
+Use the following patterns to avoid generic dashboard design:
+- **Dashboard:** page header + a compact row of only the most actionable counts + a primary work queue/schedule area + one or two secondary lists. Content changes by role. No bento wall of identical cards.
+- **Discover:** search/filter toolbar + clearly switchable list/grid results. Resource rows/cards prioritise name, location, available time, requirements, and eligibility. Keep images secondary to the information.
+- **Resource detail:** two-column desktop layout where useful: main details/availability on the left, requirements and request action in a clear right-hand panel. Stack in a meaningful order on mobile.
+- **Request flow:** focused stepper, clear time and purpose inputs, a prominent eligibility report with rule-by-rule reasons, and a review summary before submission. Do not decorate it like a checkout funnel.
+- **Review workspace:** dense but readable queue table, then a decision page comparing request details, rules, conflicts, and priority factors. Reason entry must be visible before a consequential decision.
+- **Check-in/return:** narrow mobile-friendly form with a clear sequence, accessory checklist, condition selector, notes, photo capture, and final review. Do not use decorative cards for every field.
+- **Incident review:** explicit reported-allegation notice, evidence and timeline, clear reviewer actions, and a written resolution area. Never visually imply guilt before a human decision.
+- **Trust Ledger:** chronological vertical event list/table with actor, time, reason, linked entity, sequence, and hash. Hash verification state should be unambiguous and evidence-based.
+- **Policies:** policy table/list + structured editor + “preview against sample” results. Make active version and effective time easy to see.
+- **Analytics:** two or three relevant charts with supporting data tables and concise explanations, not a colourful wall of charts.
+
+### 4.12 Final visual acceptance check
+
+Before finishing, inspect every route at desktop width (1440px) and mobile width (375px). Remove any unrequested gradient, generic bento grid, excessive rounded card, decorative metric, placeholder copy, stock-looking illustration, low-contrast text, or dead control. If the interface could be mistaken for a generic AI SaaS template, revise it toward the restrained institutional operations direction defined above.
+
+## 5. Navigation and routes
+
+User navigation: Dashboard, Discover, My bookings, Notifications, Profile.
+Owner/Manager navigation: Overview, Resources, Requests, Handover and Return, Incidents, Ledger, Analytics.
+Admin navigation: Users and roles, Policies, Organisation settings, Oversight.
+Show only the navigation the signed-in role may use, and route-guard everything (guards are UX; the mock API is the real check).
+
+Routes:
+- `/login` demo accounts
+- `/` dashboard (role-aware)
+- `/discover`, `/resources/:id`
+- `/resources/:id/request` booking request
+- `/bookings`, `/bookings/:id` (status, timeline, actions)
+- `/bookings/:id/check-in`, `/bookings/:id/return`, `/bookings/:id/incident`
+- `/review` request queue, `/review/:bookingId` decision workspace
+- `/handover` staff handover and return confirmation
+- `/incidents`, `/incidents/:id`
+- `/ledger` and `/ledger?entity=booking:ID`
+- `/owner/resources`, `/owner/resources/new`, `/owner/resources/:id/edit`
+- `/assets/scan/:token` QR landing (authenticated)
+- `/labels/:resourceId` printable QR label sheet
+- `/analytics`
+- `/admin/users`, `/admin/policies`, `/admin/policies/:id`, `/admin/settings`
+- `/notifications`, `/profile`
+- `*` not found
+
+## 6. Screens (build all)
+
+### 6.1 Dashboard
+- USER: next booking with state and one context-appropriate action, a compact active-bookings list, pending requests with plain-language status, training/eligibility summary (what I am cleared for and what remains), recent notifications, and a prominent but restrained “Find equipment” search field. Do not turn these into a wall of equal-sized KPI cards.
+- MANAGER/OWNER: a compact count strip for pending requests, handovers due, returns due, overdue items, and open incidents; below it, the actionable request queue and today’s schedule. Prioritise work requiring attention over decorative metrics.
+- ADMIN: recent policy and role changes, tamper-evident ledger verification state, and a concise utilisation summary with links to the relevant detail. Avoid generic analytics-card grids.
+
+### 6.2 Discover
+- Search bar with an optional "Describe what you need" natural-language mode. In mock mode, parse keywords (for example "measure voltage and current" matches multimeter, bench supply, oscilloscope) and show a "Why this matched" line per result. Label it "Assisted search" and show that final availability and eligibility are checked by rules.
+- Filters: category (Electronics, Media and computing, Spaces), date and time range, location, availability, supervision required, training required, owner.
+- Result rows/cards: local category-specific resource illustration (never a gradient or fake stock image), name, category, location, next available slot, status pill, requirement labels (Training required, Supervision required, Approval required), and an eligibility preview for the signed-in user ("You are eligible", "Training needed", "Review required"). Keep the resource facts more prominent than the illustration.
+- Grid and list toggle. Sorting. Pagination or infinite scroll.
+
+### 6.3 Resource detail
+- A consistent local category illustration/gallery (do not imply it is a real asset photo), description, owner/department, location and access instructions (only after access is approved), condition, accessories checklist, return conditions, cancellation policy, and usage rules.
+- **Requirements panel**: each requirement with PASS, FAIL, REVIEW_REQUIRED, or NOT_APPLICABLE for the signed-in user with reason and next step ("Request a training session").
+- Weekly availability calendar showing available, requested, and booked blocks; selecting a slot prefills the request.
+- Published allocation policy summary ("Maximum 6 hours per user per rolling 7 days. Ties broken by request time.") in plain language.
+- Waitlist information if applicable.
+- Primary button: "Request this resource" (disabled with explanation if a mandatory requirement fails; offer "Request training" or "Join waitlist" when relevant).
+
+### 6.4 Booking request
+- Stepper: Time, Purpose, Review.
+- Date/time selection with duration limits from policy and conflict feedback.
+- Purpose and project description (required), team members optional.
+- Live **eligibility result** panel listing every check with status, reason, and next step, for example: Identity verified (PASS), Institution membership (PASS), Safety training (FAIL: "Complete the 3D printer safety induction before booking"), Availability (PASS), Usage limit (PASS: "2 of 6 hours used this week").
+- Overall result banner: ELIGIBLE, NOT ELIGIBLE, or REVIEW REQUIRED. Clearly explain that eligible does not mean approved.
+- Submit creates the booking in REQUESTED then PENDING_REVIEW (or ELIGIBILITY_BLOCKED). Use an idempotency key so double clicks do not create duplicates.
+
+### 6.5 My bookings and booking detail
+- Tabs: Upcoming, Pending, Waitlisted, Active, Past, Cancelled.
+- Booking detail shows: resource, time, status pill, a **lifecycle stepper** (Requested, Review, Approved, Checked out, Returned, Closed), decision reason, applied policy version, eligibility results, action buttons appropriate to state (Cancel, Check in, Return, Report issue), and the booking's Trust Ledger timeline.
+- Waitlisted bookings show position, plain-language reason ("Two eligible requests have priority under the published allocation policy"), and "Your request remains active".
+
+### 6.6 Manager request queue and decision workspace
+- Queue table: requester, resource, time, status, eligibility summary, conflict indicator, age. Filters and bulk-safe actions (no bulk approve).
+- Decision workspace shows: request details, requester information limited to what the role needs (name, role, relevant training, usage this week; no unnecessary personal data), eligibility results, competing requests for the same slot with each request's priority factors, scheduling conflicts, and usage history.
+- Actions: Approve, Reject (reason required), Waitlist (reason required), Request more information, Override policy (reason required, highlighted as an exception and logged).
+- The UI must show the allocation explanation: which policy version and which factors produced the suggested order. The suggestion is advisory; the human decides.
+
+### 6.7 Check-in
+- Mobile-first flow: confirm booking and identity, verify within allowed window (explain if too early), checklist of accessories, initial condition selector (Excellent, Good, Minor wear, Needs attention), notes, up to 4 photos with a preview, acknowledge usage rules, submit.
+- Supervised resources show "Waiting for technician confirmation" until a manager confirms in the Handover screen.
+- Success state shows the new ledger entry.
+
+### 6.8 Return
+- Record actual return time, final condition, accessory checklist (flag missing), photos, notes, and an option "Report an issue".
+- If a condition differs from the initial report, show a comparison view (before vs after) and prompt for an incident draft.
+- Supervised returns show "Return pending staff confirmation".
+
+### 6.9 Handover and Return (staff)
+- Tabs: Due for handover, With users, Return pending confirmation, Overdue.
+- Confirm handover, confirm return (review the user's before/after reports side by side), or open an incident.
+
+### 6.10 Incident reporting and management
+- Report form: category (Damage/suspected damage, Missing accessory, Late return, Safety concern, Booking conflict, Other), free-text description, evidence photos.
+- **Assisted draft**: a button "Structure my report" converts free text into structured fields in mock mode (category, reported stage, affected part, requires human review = true). The user reviews and confirms before submitting. Label clearly that AI/assistance only drafts and a human reviews.
+- Incident detail: status (Reported, Under review, Awaiting information, Resolved), clear label "Reported allegation, not yet verified", timeline, comments, evidence, reviewer and resolution panel with outcome, explanation, and timestamp. No automatic penalties anywhere.
+- Users can add information to incidents they are part of.
+
+### 6.11 Trust Ledger
+- Vertical timeline of events with actor, action, timestamp, reason, and linked entity. Filters by entity, actor, action, and date.
+- Each event shows sequence number and a short hash fingerprint. A **ChainBadge** shows "Chain verified at HH:MM, head #N". Admins and managers have a "Verify now" button that recomputes the chain in the mock server and reports success or the first broken sequence number. Include a hidden admin-only "Simulate tamper" button in the demo settings to show the failure state and recovery messaging.
+- Events cannot be edited or deleted; corrections appear as new events referencing the original.
+- Export the visible ledger as CSV or print-friendly view.
+
+### 6.12 Owner resource management
+- List of resources with status (Draft, Published, Paused, Maintenance, Archived), utilisation, and pending requests.
+- Create/edit resource form with sections: basics, location, availability windows (weekly pattern plus exceptions), requirements (training, membership, qualification), supervision rule, usage rules, return deadline, cancellation policy, accessories checklist, initial condition, photos. Validate and show a preview of exactly how users will see the requirements.
+- Publish, pause, mark maintenance, archive with reason. All changes appear in the ledger.
+- Assets tab: add individual units with asset tags and generate QR labels.
+
+### 6.13 Assets and QR
+- Label sheet page with printable grid of QR codes plus asset tag and name.
+- Scan landing page `/assets/scan/:token` (requires sign-in): shows only actions allowed for the current user right now (start check-in, start return, view history), otherwise a clear explanation. State that scanning alone grants no access.
+- Provide a "Scan QR" screen using the device camera where supported with a manual token entry fallback.
+
+### 6.14 Policies (admin and owner scope)
+- List of policies by scope (Organisation, Category, Resource) and kind (Eligibility, Usage cap, Priority, Approval chain, Cancellation, Return window), with status and active version.
+- Editor creates a new version with validated fields (for example usage cap: window, max hours, applies to roles). A **Preview** panel runs the draft policy against a sample user and booking and shows the outcome and reasons before activation. Activation requires a reason and shows the effective time.
+- Make it demonstrably live: changing the 3D printer weekly cap from 6 to 2 hours changes what Kabir sees on his next request, while his existing bookings still show the policy version they were decided under.
+- Plain-language policy summary shown to users on resource pages.
+
+### 6.15 Analytics
+- Utilisation per resource, booked vs available hours, demand by hour and day heatmap, waitlist length, request outcomes, average decision time, incident rate, distribution of access across users (fairness view showing share of hours by user group), with Recharts. Insight cards in plain language ("Digital Oscilloscope: 30% utilised; demand concentrated 2 to 5 PM. Consider adding supervised afternoon availability."). Label insights as suggestions for human decision.
+
+### 6.16 Notifications
+- In-app list with unread state, filters, mark read. Types: decision, waitlist change, cancellation, upcoming booking, overdue return, incident update. Notification previews contain no sensitive details. Provide a simulated "outbox" status in the admin demo panel so judges see delivery processing separate from booking state.
+
+### 6.17 Admin
+- Users and roles table with verification status, role assignments (changes require reason and are logged), training record verification workflow (verify with source and expiry), organisation switcher shown only for demo, organisation settings, oversight dashboard (policy changes, role changes, chain status).
+
+### 6.18 Profile
+- Own profile fields, training records and expiry, usage this week per resource, data export button (downloads own data as JSON), notification preferences.
+
+## 7. Booking state machine (UI and mock backend must enforce)
+
+States: REQUESTED, NEEDS_INFORMATION, ELIGIBILITY_BLOCKED, PENDING_REVIEW, WAITLISTED, APPROVED, REJECTED, CANCELLED, CHECKED_OUT_TO_USER, RETURN_PENDING_CONFIRMATION, RETURNED, OVERDUE, CLOSED.
+
+Transitions:
+- REQUESTED -> PENDING_REVIEW | ELIGIBILITY_BLOCKED | CANCELLED
+- PENDING_REVIEW -> APPROVED | REJECTED | WAITLISTED | NEEDS_INFORMATION
+- WAITLISTED -> PENDING_REVIEW | APPROVED | CANCELLED
+- APPROVED -> CANCELLED | CHECKED_OUT_TO_USER | OVERDUE
+- CHECKED_OUT_TO_USER -> RETURN_PENDING_CONFIRMATION | RETURNED | OVERDUE
+- RETURN_PENDING_CONFIRMATION -> RETURNED
+- RETURNED -> CLOSED
+The client never sets status directly; it calls action endpoints and renders the result. Invalid transitions return 400 and are shown as friendly messages.
+
+## 8. TypeScript domain types (use these shapes)
+
+```ts
+type Role = 'USER' | 'OWNER' | 'MANAGER' | 'ADMIN';
+type CheckStatus = 'PASS' | 'FAIL' | 'REVIEW_REQUIRED' | 'NOT_APPLICABLE';
+interface Organization { id: string; name: string; domain: string }
+interface User { id: string; organizationId: string; name: string; email: string; roles: Role[]; verification: 'VERIFIED'|'PENDING'|'UNVERIFIED' }
+interface TrainingRecord { id: string; userId: string; type: string; status: 'VERIFIED'|'PENDING'|'EXPIRED'|'NONE'; source: string; expiresAt?: string }
+interface Resource { id: string; organizationId: string; ownerId: string; name: string; category: 'ELECTRONICS'|'MEDIA_COMPUTING'|'SPACE'; location: string; description: string; condition: string; status: 'DRAFT'|'PUBLISHED'|'PAUSED'|'MAINTENANCE'|'ARCHIVED'; requirements: Requirement[]; supervision: 'NONE'|'STAFF_CONFIRMATION'|'STAFF_PRESENT'; accessories: string[]; returnRules: string; cancellationPolicy: string; availability: AvailabilityWindow[]; policyIds: string[] }
+interface Requirement { key: string; type: 'TRAINING'|'MEMBERSHIP'|'QUALIFICATION'|'APPROVAL'; label: string; value: string }
+interface AvailabilityWindow { id: string; resourceId: string; start: string; end: string; recurrence?: string }
+interface Booking { id: string; organizationId: string; resourceId: string; userId: string; start: string; end: string; purpose: string; status: BookingStatus; idempotencyKey: string; policyVersionIds: string[]; waitlistPosition?: number; decisionReason?: string; createdAt: string }
+interface EligibilityCheck { key: string; label: string; status: CheckStatus; reason: string; nextStep?: string }
+interface ConditionReport { id: string; bookingId: string; stage: 'CHECK_IN'|'RETURN'; condition: 'EXCELLENT'|'GOOD'|'MINOR_WEAR'|'NEEDS_ATTENTION'; accessories: {name:string; present:boolean}[]; notes: string; attachmentIds: string[]; reporterId: string; createdAt: string }
+interface Incident { id: string; bookingId: string; reporterId: string; category: string; description: string; status: 'REPORTED'|'UNDER_REVIEW'|'AWAITING_INFO'|'RESOLVED'; reviewerId?: string; resolution?: string; requiresHumanReview: true; createdAt: string }
+interface LedgerEvent { id: string; organizationId: string; seq: number; actorId: string | null; action: string; entityType: string; entityId: string; occurredAt: string; reason?: string; metadata: Record<string, unknown>; prevHash: string; hash: string }
+interface Policy { id: string; scope: {type:'ORG'|'CATEGORY'|'RESOURCE'; id?: string}; kind: 'ELIGIBILITY'|'USAGE_CAP'|'PRIORITY'|'APPROVAL_CHAIN'|'CANCELLATION'|'RETURN_WINDOW'; status: 'DRAFT'|'ACTIVE'|'RETIRED'; activeVersion?: number }
+interface PolicyVersion { policyId: string; version: number; definition: Record<string, unknown>; effectiveFrom: string; createdBy: string; reason: string }
+interface Notification { id: string; userId: string; type: string; message: string; createdAt: string; readAt?: string }
+```
+
+## 9. API client surface (mock now, FastAPI later; prefix `/api/v1`)
+
+Implement these functions with identical request/response shapes in both modes:
+- Auth: `GET /me`, demo `POST /auth/demo-login`
+- Resources: `GET /resources`, `GET /resources/{id}`, `POST /resources`, `PATCH /resources/{id}`, `POST /resources/{id}/publish`, `GET /resources/{id}/availability`, `GET /resources/{id}/waitlist`
+- Bookings: `POST /bookings`, `GET /bookings/mine`, `GET /bookings/{id}`, `POST /bookings/{id}/cancel`, `POST /bookings/{id}/decision`, `POST /bookings/{id}/check-in`, `POST /bookings/{id}/condition-reports`, `POST /bookings/{id}/return`, `POST /bookings/{id}/return-confirmation`, `POST /bookings/{id}/eligibility-check`
+- Incidents: `POST /bookings/{id}/incidents`, `GET /incidents`, `POST /incidents/{id}/resolution`
+- Ledger: `GET /audit-events?entity_type=&entity_id=`, `GET /audit-events/verify`
+- Policies: `GET /policies`, `POST /policies`, `POST /policies/{id}/versions`, `POST /policies/{id}/activate`, `POST /policies/preview`
+- Assets and attachments: `GET /assets/scan/{token}`, `POST /resources/{id}/assets`, `POST /attachments/upload-url`, `POST /attachments/{id}/confirm`
+- Notifications: `GET /notifications`, `POST /notifications/{id}/read`
+- Analytics: `GET /analytics/utilisation`, `GET /analytics/fairness`
+
+Error shape: `{ "error": { "code": string, "message": string, "details"?: unknown } }`. Handle 401 by redirecting to login, 403 with a clear "not permitted" view, 404 safely, 409 with a conflict dialog offering to reselect a slot, 422 with field errors.
+
+## 10. Seed data (fictional)
+
+Organisation A resources (at least 10), with realistic requirements:
+- Digital Oscilloscope (Electronics Lab, requires Electronics induction, technician approval, heavy afternoon demand)
+- Soldering Station x3 (induction, supervised)
+- Bench Power Supply, Digital Multimeter kit
+- 3D Printer (requires Safety training, weekly cap, staff-supervised)
+- Mirrorless Camera Kit (single unit, high demand, rolling 6-hour weekly cap; Kabir is near cap and Diya and Aarav compete with him for the same slot to demonstrate waitlist)
+- Tripod and Lighting Set
+- GPU Workstation (hours-based, approval required)
+- Project Room 204 (space, no training, supervised hours)
+- Meeting Room B
+
+Include pre-built bookings across all states so each screen is populated: one APPROVED for tomorrow, one CHECKED_OUT, one RETURN_PENDING_CONFIRMATION, one OVERDUE, one WAITLISTED (position 2), one REJECTED with reason, one CLOSED with a resolved damage incident, plus pending requests for the manager queue. Seed a ledger with a valid hash chain (SHA-256 with `crypto.subtle`), notifications, utilisation history for charts, and two policies with versions.
+
+## 11. Demo script the build must support end to end
+
+1. Sign in as Diya and see the 3D Printer shows "Training needed" with a next step. Sign in as Aarav and book the Digital Oscilloscope.
+2. Eligibility result shows each check with reasons, then submit.
+3. Sign in as Ravi (manager), open the queue, approve with a reason.
+4. As Aarav, check in with photos and condition.
+5. Return with final condition, then Ravi confirms receipt.
+6. Open the ledger, see the chain, click Verify now.
+7. Camera Kit competition: Kabir and Aarav request the same slot; manager sees the explanation; waitlist shows the reason.
+8. As Priya (admin), change a usage-cap policy with preview, activate, and see Kabir's next outcome change while earlier bookings keep their policy version.
+9. Report damage on a return; Ravi reviews and resolves; both parties see the history.
+10. Analytics shows utilisation and fairness insights.
+11. Switch to Organisation B and confirm Organisation A data is not visible.
+
+## 12. Implementation quality, integrity, and acceptance criteria
+
+### 12.1 Non-negotiable functional quality
+- Build a complete app, not a static prototype, one dashboard, or a collection of disconnected screenshots.
+- It must compile and run with no TypeScript errors and no browser-console errors on normal navigation. No broken imports, fake route links, silent button failures, or unhandled rejected promises.
+- Every visible action must work. If an action cannot be completed in the current mode, explain that in the UI and disable it. Do not leave decorative buttons or pretend-to-work controls.
+- Persist mock data across reloads. Changes to resources, policies, bookings, incidents, notifications, and ledger must be reflected in every related screen and derived count.
+- Include loading, empty, success, error, and permission-denied states for the relevant components. Avoid indefinite spinners and empty white screens.
+- Use the typed API client for domain operations; do not bypass it by mutating page-local arrays. Keep the mock and live API response contracts aligned.
+- The client never sets a booking state directly. It invokes the correct action endpoint, receives the updated record, and renders the server/mock-server result.
+- Prevent double-click duplicates, overlapping bookings, invalid state transitions, usage-cap bypasses, and cross-organisation data leakage. Enforce these in the mock server, not just in component conditionals.
+
+### 12.2 Truthfulness, trust, and safety
+- Do not claim live verification, real payments, real SSO, production compliance, or actual notifications. Clearly label simulations (e.g. “Demo verification”, “Simulated notifications”, “Local demo data”).
+- Do not collect or display unnecessary personal data. Use fictional identities and emails only.
+- Incident reports are allegations until a human reviewer resolves them. No automatic blame, penalties, guilt language, or automated liability decisions. Any assisted draft must be reviewed and confirmed by a person before submission.
+- Allocation suggestions may show deterministic factors and policy version, but the authorised human makes the final decision. Show override reasons and record them in the ledger.
+- Use the phrase “tamper-evident history”; do not describe the ledger as immutable or blockchain-based.
+- Never make an AI feature required for core use. `VITE_ENABLE_AI` defaults to `false`, and all core journeys must work without an AI service.
+
+### 12.3 Engineering standards
+- Use strict TypeScript domain types, typed API functions, small feature-focused components, and shared hooks/utilities. Avoid `any` unless there is a documented boundary and a narrow reason.
+- Keep domain logic in `src/mocks/server.ts` and shared domain utilities, not duplicated across components. Isolate deterministic eligibility, allocation order, state transitions, usage caps, tenant checks, and ledger hashing so they can be unit-tested.
+- Use stable IDs, UTC ISO timestamps, explicit error types, and predictable error handling. Treat `localStorage` contents as untrusted input: validate loaded state and recover gracefully from malformed or stale demo data.
+- Create a reset-demo-data action in the demo/admin settings so reviewers can rerun the seeded journeys. Require confirmation before resetting.
+- Use local assets only. The app should start and operate without credentials, external API keys, external image services, or network access beyond development dependencies.
+- Add a `README.md` documenting setup, scripts, demo accounts, role switching, mock/live modes, seeded scenarios, known simulations, and backend integration. Add an `/about` page listing implemented, simulated, and planned capabilities accurately.
+- Add tests for the booking state machine, eligibility engine, time overlap, rolling usage cap, policy version behavior, waitlist promotion, role/tenant permissions, idempotency, and ledger chain verification. If time prevents a full suite, implement and run the highest-risk tests first and report remaining gaps honestly.
+
+### 12.4 Visual and responsive quality gate
+- Follow Section 4 exactly. No gradients, generic bento layouts, pink/blue or purple/blue palette combinations, glassmorphism, neon, giant pill buttons, emoji icons, or decorative AI-themed effects.
+- Keep the UI institutional, operational, restrained, and readable. Use the specified forest-green/neutral/ochre palette and CSS tokens. Do not add a new colour system while styling individual screens.
+- Inspect at 1440px and 375px. Fix overflow, clipping, unreadable data, non-functional mobile navigation, poorly sized dialogs, and inaccessible controls.
+- Ensure every status is communicated through text plus icon/shape plus colour. Verify colour contrast in light and dark themes.
+- Each route must look designed for its task; do not force every route into the same card layout. Use tables for operational queues, timelines for history, forms for data entry, and compact charts for analysis.
+- Charts, badges, counts, and summary metrics must be derived from seeded records and update when those records change. Do not fabricate metrics or present simulated data as live.
+
+### 12.5 Build and self-review sequence
+Implement in this order, without stopping after the first visual shell:
+1. Inspect dependencies and establish design tokens, theme handling, shared components, application shell, router, and accessible navigation.
+2. Implement demo authentication, role selection, organisation context, typed domain models, seed records, storage validation, and mock API error handling.
+3. Implement resource discovery, filtering, resource detail, availability, eligibility preview, and booking request.
+4. Implement booking list/detail, manager queue and decision workspace, check-in, return, and staff handover confirmation.
+5. Implement incident reporting/review, ledger timeline/hash verification, policy versions/preview/activation, asset QR flows, notifications, analytics, user/role administration, and profile.
+6. Connect every screen to the same mock data and API layer; test cross-screen state changes and the organisation boundary.
+7. Run the full demo script in Section 11, then inspect every route in light/dark mode at desktop and mobile dimensions. Fix functional, responsive, accessibility, and visual acceptance failures before claiming completion.
+
+If context or generation limits prevent a complete implementation in one pass, do not silently omit screens. Prioritise a compiling architecture and a complete end-to-end booking lifecycle, then implement remaining routes in the listed order. Report precisely what is implemented, what is mocked, and what remains. Do not label the app complete unless the acceptance checks actually pass.
+
+--- END OF PROMPT ---
+
+## Follow-up prompts (send one at a time after the first build)
+
+1. "Run through the 11-step demo script in section 11 and fix anything that does not work. List what you changed."
+2. "Audit accessibility against WCAG 2.1 AA: focus order, labels, contrast, dialog focus trapping, reduced motion, keyboard-only completion of the full booking journey. Fix every issue."
+3. "Make the check-in, return, incident, and QR screens excellent on a 375px phone. Increase touch targets and simplify the layout."
+4. "Harden the mock backend: concurrent overlapping approvals return 409, usage caps are rolling, waitlist promotion happens on cancellation, and invalid transitions return 400. Add unit tests for the state machine, eligibility engine, usage cap, and ledger chain using Vitest."
+5. "Add a cross-organisation isolation test and make sure no screen can display data from another organisation."
+6. "Switch the API client to live mode behind `VITE_API_MODE=live` and generate a typed contract file (`openapi-contract.md`) listing every endpoint, request body, response body, and error code so the FastAPI backend can implement it exactly."
+7. "Run a strict visual quality pass against Section 4. Remove every gradient, generic bento grid, glassmorphism effect, neon/pink/blue palette, giant pill button, decorative metric, stock-looking image placeholder, and repeated card pattern. Preserve functionality; improve hierarchy, typography, table usability, responsive behaviour, light/dark contrast, empty/error states, and decision-explaining microcopy. Do not add features."
+
+## Notes for integration with the backend
+
+- AI Studio Build produces a React + Vite app. Your docs recommended Next.js; this React Router app is equivalent for the demo and can be hosted as static files, with the FastAPI backend behind `/api/v1`. If you later want Next.js, the `features` and `lib/api.ts` layers move over unchanged.
+- Export the contract from follow-up 6 and give it to your backend teammates as the shared API contract.
+- Keep a record of AI Studio use in your submission's AI/tools disclosure.
