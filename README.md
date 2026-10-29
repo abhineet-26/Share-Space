@@ -148,11 +148,11 @@ flowchart TD
 
     classDef start fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
     classDef decision fill:#fef3c7,stroke:#d97706,color:#78350f
-    classDef end fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef completedState fill:#dcfce7,stroke:#16a34a,color:#14532d
 
     class A,I,J start
     class D,G,L decision
-    class N,O end
+    class N,O completedState
 ```
 
 ### The important part
