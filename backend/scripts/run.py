@@ -9,11 +9,25 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 
 def run_migrations() -> None:
     print("==> [SHARESPACE] Running database migrations (alembic upgrade head)...", flush=True)
-    res = subprocess.run(["alembic", "upgrade", "head"], check=False)
+    config_args: list[str] = []
+    for candidate in [
+        "alembic.ini",
+        "migrations/alembic.ini",
+        "/app/alembic.ini",
+        "/app/migrations/alembic.ini",
+    ]:
+        if Path(candidate).exists():
+            config_args = ["-c", candidate]
+            break
+
+    cmd = ["alembic", *config_args, "upgrade", "head"]
+    print(f"==> [SHARESPACE] Executing: {' '.join(cmd)}", flush=True)
+    res = subprocess.run(cmd, check=False)
     if res.returncode != 0:
         print(
             f"==> [SHARESPACE] ERROR: Alembic migrations failed with exit code {res.returncode}",
@@ -22,6 +36,18 @@ def run_migrations() -> None:
         )
         sys.exit(res.returncode)
     print("==> [SHARESPACE] Database migrations applied successfully.", flush=True)
+
+    # Safe initial bootstrap if database is empty and demo mode is active
+    if os.environ.get("AUTO_BOOTSTRAP_DEMO", "true").lower() == "true":
+        try:
+            import asyncio
+
+            from scripts.bootstrap_demo import run_bootstrap
+
+            print("==> [SHARESPACE] Checking institutional demo bootstrap state...", flush=True)
+            asyncio.run(run_bootstrap())
+        except Exception as exc:
+            print(f"==> [SHARESPACE] Notice: Bootstrap check: {exc}", flush=True)
 
 
 def start_server() -> None:
