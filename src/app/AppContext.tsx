@@ -151,6 +151,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     refreshSession();
   }, [loadDemoPersonas, refreshSession]);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      setOrganization(null);
+      setNotifications([]);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('sharespace_token');
+      }
+    };
+    window.addEventListener('sharespace:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('sharespace:unauthorized', handleUnauthorized);
+    };
+  }, []);
+
   const switchUser = useCallback(
     async (userId: string) => {
       try {

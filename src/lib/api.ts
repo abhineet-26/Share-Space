@@ -63,6 +63,12 @@ async function liveFetch<T>(path: string, options?: RequestInit): Promise<T> {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('sharespace_token');
+      if (!path.startsWith('/auth/demo-personas')) {
+        window.dispatchEvent(new CustomEvent('sharespace:unauthorized'));
+      }
+    }
     const errDetail = typeof data?.detail === 'object' && !Array.isArray(data?.detail)
       ? data.detail
       : {

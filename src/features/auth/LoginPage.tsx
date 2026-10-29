@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Building2, ArrowRight, ShieldCheck, RotateCcw, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useApp } from '../../app/AppContext';
 
@@ -16,10 +16,21 @@ export const LoginPage: React.FC = () => {
     resetDemoData,
   } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [signingInUserId, setSigningInUserId] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState<boolean>(false);
+
+  const fromState = (location.state as { from?: { pathname?: string; search?: string } })?.from;
+  const fromTarget = fromState ? `${fromState.pathname || '/'}${fromState.search || ''}` : null;
+
+  useEffect(() => {
+    // If an existing session is valid, redirect already-authenticated visitor away from /login to dashboard or original target
+    if (user && !signingInUserId && !location.search.includes('switch=true')) {
+      navigate(fromTarget || '/', { replace: true });
+    }
+  }, [user, navigate, fromTarget, signingInUserId, location.search]);
 
   const orgAUsers = allDemoUsers.filter((u) => u.organizationId === 'org_nit');
   const orgBUsers = allDemoUsers.filter((u) => u.organizationId === 'org_harbour');
@@ -29,7 +40,8 @@ export const LoginPage: React.FC = () => {
       setSigningInUserId(userId);
       setLoginError(null);
       await switchUser(userId);
-      navigate(redirectPath);
+      const destination = redirectPath === '/' && fromTarget ? fromTarget : redirectPath;
+      navigate(destination, { replace: true });
     } catch (err: any) {
       setLoginError(err?.message || 'Failed to authenticate demo user. Please try again.');
     } finally {
@@ -76,6 +88,17 @@ export const LoginPage: React.FC = () => {
           </button>
         )}
       </div>
+
+      {user && (
+        <div className="p-4 rounded-[8px] bg-[var(--brand-subtle)] border border-[var(--brand-primary)]/30 flex items-center justify-between text-xs">
+          <span>
+            You are currently signed in as <strong>{user.name}</strong> ({user.roles.join(', ')}).
+          </span>
+          <Link to="/" className="font-medium text-[var(--brand-primary)] hover:underline">
+            Return to Dashboard &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* Global Login or Bootstrap Error Banner */}
       {loginError && (
