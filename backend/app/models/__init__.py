@@ -104,6 +104,12 @@ class CheckStatus(str, enum.Enum):
     NOT_APPLICABLE = "NOT_APPLICABLE"
 
 
+class EligibilityOverallStatus(str, enum.Enum):
+    ELIGIBLE = "ELIGIBLE"
+    NOT_ELIGIBLE = "NOT_ELIGIBLE"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+
+
 class TrainingStatus(str, enum.Enum):
     VERIFIED = "VERIFIED"
     PENDING = "PENDING"
