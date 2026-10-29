@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
+from app.core.middleware import rate_limiter
 from scripts.seed import seed_database
 
 settings = get_settings()
@@ -43,7 +44,8 @@ AdminSessionFactory = async_sessionmaker(
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def setup_test_db():
-    """Ensure database has seed data before running tests."""
+    """Ensure database has seed data before running tests and reset rate limits."""
+    rate_limiter.reset()
     async with AdminSessionFactory() as session:
         await seed_database(session)
     yield

@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.core.database import engine, migration_engine
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
+from app.core.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -59,8 +60,18 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
-        expose_headers=["X-Request-ID", "X-Total-Count"],
+        expose_headers=[
+            "X-Request-ID",
+            "X-Total-Count",
+            "X-RateLimit-Limit",
+            "X-RateLimit-Remaining",
+            "Retry-After",
+        ],
     )
+
+    # Security Headers & Rate Limiting
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RateLimitMiddleware)
 
     # GZip compression
     app.add_middleware(GZipMiddleware, minimum_size=1000)
