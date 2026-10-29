@@ -185,18 +185,23 @@ Append dated decisions below as the project evolves.
 **Phase 0: COMPLETE** — Documentation and audit phase done.
 **Phase 01: COMPLETE** — FastAPI foundation, health/readiness endpoints, structured logging, CI.
 **Phase 02: COMPLETE** — Tenant-safe schema, Alembic migrations, PostgreSQL RLS, exclusion constraints, tamper-evident ledger, deterministic seed data, 15 integration tests passing.
+**Phase 03: COMPLETE** — Authentication, sessions, JWT, cookies, tenant RLS binding on auth, server-side role permissions (`require_roles`), demo login, admin role updates with required governance reasons, tamper-evident ledger auditing of role modifications, 26 integration tests passing.
 
 **Implemented (Backend & Database):**
 - PostgreSQL 18 schema with 18 tables and Alembic migrations from empty to head
 - Row-Level Security (RLS) enabled and forced on all 17 tenant-scoped tables with fail-closed policies
 - Non-superuser application role `sharespace_app` (NOBYPASSRLS) and migration role `sharespace_migrate` (BYPASSRLS)
-- Transaction-local tenant context binding via `set_tenant_context` (`SET LOCAL app.org_id`)
+- Transaction-local tenant context binding via `set_tenant_context` (`SET LOCAL app.org_id`) in `get_current_user`
+- JWT session management via HTTP-only `sharespace_session` cookie and `Authorization: Bearer` fallback
+- Role-based server access control dependency `require_roles([Role...])`
+- Endpoints: `POST /api/v1/auth/demo-login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `PATCH/PUT /api/v1/admin/users/{user_id}/roles`
+- Tamper-evident Trust Ledger audit event generation on administrative role updates
 - PostgreSQL exclusion constraint (`btree_gist`) preventing overlapping confirmed bookings
 - Check constraint `start_at < end_at`
 - Database trigger `trg_protect_ledger_events` preventing application-level UPDATE and DELETE on historical ledger events
 - Canonical deterministic JSON serialization and SHA-256 hash chaining for Trust Ledger
 - Deterministic seed script `scripts/seed.py` matching frontend demo scenarios across 2 institutions
-- 15 automated integration tests covering RLS isolation, fail-closed behavior, cross-tenant denial, overlap rejection, migration downgrade/upgrade, ledger tamper detection, and seed repeatability
+- 26 automated integration tests covering RLS isolation, fail-closed behavior, cross-tenant denial, overlap rejection, migration downgrade/upgrade, ledger tamper detection, seed repeatability, authentication, role enforcement matrix, governance reason requirement, and audit logging
 
 **Implemented (in mock/frontend):**
 - Complete React 19 frontend with 25+ screens, role guards, responsive design
@@ -207,4 +212,4 @@ Append dated decisions below as the project evolves.
 - QR asset scan flow with contextual actions
 - All API contracts defined in `src/lib/api.ts` and `CONTRACT.md`
 
-**Next task:** Phase 03 — Authentication, Sessions, and Scoped Permissions
+**Next task:** Phase 04 — Resource Catalogue, Search, Filters, Availability, Assets, and QR Resolution

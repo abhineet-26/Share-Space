@@ -13,24 +13,20 @@ settings = get_settings()
 
 def _create_engine(url: str, is_test: bool = False):
     """Create async engine with appropriate pool settings for the database dialect."""
-    if "sqlite" in url:
-        # SQLite doesn't support pool_size, max_overflow with NullPool
+    if "sqlite" in url or is_test or settings.ENVIRONMENT in ("test", "development"):
         return create_async_engine(
             url,
             echo=settings.DEBUG,
-            pool_pre_ping=True,
             poolclass=NullPool,
-            connect_args={"check_same_thread": False},
+            connect_args={"check_same_thread": False} if "sqlite" in url else {},
         )
-    else:
-        return create_async_engine(
-            url,
-            echo=settings.DEBUG,
-            pool_pre_ping=True,
-            pool_size=10,
-            max_overflow=20,
-            poolclass=NullPool if is_test else None,
-        )
+    return create_async_engine(
+        url,
+        echo=settings.DEBUG,
+        pool_pre_ping=True,
+        pool_size=10,
+        max_overflow=20,
+    )
 
 # Application engine (app role, no BYPASSRLS)
 engine = _create_engine(settings.DATABASE_URL, is_test=settings.ENVIRONMENT == "test")

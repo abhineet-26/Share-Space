@@ -20,11 +20,11 @@
 ### FR-01: Authentication and Roles
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| User authentication required for protected actions | Mocked | `src/mocks/server.ts:getAuthenticatedActor()` uses localStorage session |
-| Roles: USER, OWNER, MANAGER, ADMIN | Mocked | `types.ts:Role` enum, `requireRole()` in mock |
-| Multiple roles per user | Mocked | `User.roles: Role[]` in seed data |
-| Backend enforces permissions (not just frontend) | Mocked | `requireRole()`, `enforceTenantMatch()` in mock server |
-| Demo login behind non-production flag | Mocked | `ENABLE_DEMO_LOGIN` in `.env.example`, mock `demoLogin()` |
+| User authentication required for protected actions | Implemented | `backend/app/api/deps.py:get_current_user`, `test_auth_permissions.py:test_unauthenticated_request_rejected` |
+| Roles: USER, OWNER, MANAGER, ADMIN | Implemented | `app/models/__init__.py:Role`, `app/api/deps.py:require_roles` |
+| Multiple roles per user | Implemented | `User.roles: list[Role]` in DB, tested in `test_auth_permissions.py` |
+| Backend enforces permissions (not just frontend) | Implemented | `app/api/deps.py:require_roles`, verified in `test_auth_permissions.py:test_role_permission_enforcement_*` |
+| Demo login behind non-production flag | Implemented | `app/api/v1/auth.py:demo_login`, sets HTTP-only `sharespace_session` cookie, rejects if production |
 | OIDC sign-in (auth code + PKCE) | Planned | Tier 2 — requires provider selection |
 
 ### FR-02: Resource Listing
@@ -259,9 +259,9 @@
 | RLS policies + app role (no BYPASSRLS) | Implemented | 17 RLS policies, `sharespace_app` role (`test_tenant_isolation.py`) |
 | Exclusion constraint (overlap prevention) | Implemented | `exclude_overlapping_confirmed_bookings` via btree_gist (`test_booking_concurrency_overlap.py`) |
 | Deterministic seed script | Implemented | `backend/scripts/seed.py` matching frontend demo 1:1 (`test_seed.py`) |
-| Demo login endpoint | Planned | Phase 03 |
-| Session/JWT handling | Planned | Phase 03 |
-| Permission service + middleware | Planned | Phase 03 |
+| Demo login endpoint | Implemented | `backend/app/api/v1/auth.py:demo_login` (Phase 03) |
+| Session/JWT handling | Implemented | `backend/app/core/security.py`, `backend/app/api/deps.py` (Phase 03) |
+| Permission service + middleware | Implemented | `backend/app/api/deps.py:require_roles`, `backend/app/api/v1/admin.py` (Phase 03) |
 | Resource CRUD + availability | Planned | Phase 04 |
 | Asset registration + QR tokens | Planned | Phase 04 |
 | Policy engine (versioned, declarative) | Planned | Phase 05 |
