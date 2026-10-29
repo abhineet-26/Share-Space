@@ -9,14 +9,18 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
-# Add backend to path for imports
-sys.path.append(str(Path(__file__).resolve().parents[2]))
+# Add backend / app directory to path for imports
+_backend_dir = Path(__file__).resolve().parent.parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+if str(Path.cwd()) not in sys.path:
+    sys.path.insert(0, str(Path.cwd()))
 
-from app.core.config import get_settings
-from app.models.base import Base
+from app.core.config import get_settings  # noqa: E402
+from app.models.base import Base  # noqa: E402
 
 # Import all models to register them with Base.metadata
-from app.models import (  # noqa: F401
+from app.models import (  # noqa: E402, F401
     Organization,
     User,
     TrainingRecord,

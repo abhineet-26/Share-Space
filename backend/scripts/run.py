@@ -25,9 +25,14 @@ def run_migrations() -> None:
             config_args = ["-c", candidate]
             break
 
+    backend_dir = str(Path(__file__).resolve().parent.parent)
+    env = {
+        **os.environ,
+        "PYTHONPATH": f"{backend_dir}:{os.environ.get('PYTHONPATH', '')}".rstrip(":"),
+    }
     cmd = ["alembic", *config_args, "upgrade", "head"]
     print(f"==> [SHARESPACE] Executing: {' '.join(cmd)}", flush=True)
-    res = subprocess.run(cmd, check=False)
+    res = subprocess.run(cmd, env=env, check=False)
     if res.returncode != 0:
         print(
             f"==> [SHARESPACE] ERROR: Alembic migrations failed with exit code {res.returncode}",

@@ -3,6 +3,8 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
+ENV PYTHONPATH="/app"
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -17,6 +19,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 FROM python:3.11-slim AS runner
 
 WORKDIR /app
+
+ENV PYTHONPATH="/app"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
