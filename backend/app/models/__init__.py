@@ -182,12 +182,12 @@ class Organization(Base):
         nullable=False,
     )
 
-    users: Mapped[list[User]] = relationship("User", back_populates="organization", lazy="dynamic")
-    resources: Mapped[list[Resource]] = relationship("Resource", back_populates="organization", lazy="dynamic")
-    policies: Mapped[list[Policy]] = relationship("Policy", back_populates="organization", lazy="dynamic")
-    assets: Mapped[list[Asset]] = relationship("Asset", back_populates="organization", lazy="dynamic")
-    bookings: Mapped[list[Booking]] = relationship("Booking", back_populates="organization", lazy="dynamic")
-    ledger_events: Mapped[list[LedgerEvent]] = relationship("LedgerEvent", back_populates="organization", lazy="dynamic")
+    users: Mapped[list[User]] = relationship("User", back_populates="organization", lazy="selectin")
+    resources: Mapped[list[Resource]] = relationship("Resource", back_populates="organization", lazy="selectin")
+    policies: Mapped[list[Policy]] = relationship("Policy", back_populates="organization", lazy="selectin")
+    assets: Mapped[list[Asset]] = relationship("Asset", back_populates="organization", lazy="selectin")
+    bookings: Mapped[list[Booking]] = relationship("Booking", back_populates="organization", lazy="selectin")
+    ledger_events: Mapped[list[LedgerEvent]] = relationship("LedgerEvent", back_populates="organization", lazy="selectin")
 
 
 class User(Base):
@@ -217,19 +217,19 @@ class User(Base):
     )
 
     organization: Mapped[Organization] = relationship("Organization", back_populates="users")
-    trainings: Mapped[list[TrainingRecord]] = relationship("TrainingRecord", back_populates="user", lazy="dynamic")
-    bookings: Mapped[list[Booking]] = relationship("Booking", back_populates="user", lazy="dynamic")
+    trainings: Mapped[list[TrainingRecord]] = relationship("TrainingRecord", back_populates="user", lazy="selectin")
+    bookings: Mapped[list[Booking]] = relationship("Booking", back_populates="user", lazy="selectin")
     condition_reports: Mapped[list[ConditionReport]] = relationship(
         "ConditionReport",
         primaryjoin="User.id == foreign(ConditionReport.reporter_id)",
-        lazy="dynamic",
+        lazy="selectin",
     )
     incidents: Mapped[list[Incident]] = relationship(
         "Incident",
         primaryjoin="User.id == foreign(Incident.reporter_id)",
-        lazy="dynamic",
+        lazy="selectin",
     )
-    notifications: Mapped[list[Notification]] = relationship("Notification", back_populates="user", lazy="dynamic")
+    notifications: Mapped[list[Notification]] = relationship("Notification", back_populates="user", lazy="selectin")
 
 
 class TrainingRecord(Base):
@@ -310,10 +310,10 @@ class Resource(Base):
 
     organization: Mapped[Organization] = relationship("Organization", back_populates="resources")
     owner: Mapped[User] = relationship("User", foreign_keys=[owner_id])
-    requirements: Mapped[list[ResourceRequirement]] = relationship("ResourceRequirement", back_populates="resource", lazy="dynamic", cascade="all, delete-orphan")
-    availability: Mapped[list[AvailabilityWindow]] = relationship("AvailabilityWindow", back_populates="resource", lazy="dynamic", cascade="all, delete-orphan")
-    assets: Mapped[list[Asset]] = relationship("Asset", back_populates="resource", lazy="dynamic")
-    bookings: Mapped[list[Booking]] = relationship("Booking", back_populates="resource", lazy="dynamic")
+    requirements: Mapped[list[ResourceRequirement]] = relationship("ResourceRequirement", back_populates="resource", lazy="selectin", cascade="all, delete-orphan")
+    availability: Mapped[list[AvailabilityWindow]] = relationship("AvailabilityWindow", back_populates="resource", lazy="selectin", cascade="all, delete-orphan")
+    assets: Mapped[list[Asset]] = relationship("Asset", back_populates="resource", lazy="selectin")
+    bookings: Mapped[list[Booking]] = relationship("Booking", back_populates="resource", lazy="selectin")
 
 
 class ResourceRequirement(Base):
@@ -416,7 +416,7 @@ class Policy(Base):
     )
 
     organization: Mapped[Organization] = relationship("Organization", back_populates="policies")
-    versions: Mapped[list[PolicyVersion]] = relationship("PolicyVersion", back_populates="policy", lazy="dynamic", cascade="all, delete-orphan")
+    versions: Mapped[list[PolicyVersion]] = relationship("PolicyVersion", back_populates="policy", lazy="selectin", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_policy_scope", "scope_type", "scope_id"),
@@ -495,8 +495,8 @@ class Booking(Base):
     organization: Mapped[Organization] = relationship("Organization", back_populates="bookings")
     resource: Mapped[Resource] = relationship("Resource", back_populates="bookings")
     user: Mapped[User] = relationship("User", back_populates="bookings")
-    condition_reports: Mapped[list[ConditionReport]] = relationship("ConditionReport", back_populates="booking", lazy="dynamic")
-    incidents: Mapped[list[Incident]] = relationship("Incident", back_populates="booking", lazy="dynamic")
+    condition_reports: Mapped[list[ConditionReport]] = relationship("ConditionReport", back_populates="booking", lazy="selectin")
+    incidents: Mapped[list[Incident]] = relationship("Incident", back_populates="booking", lazy="selectin")
 
     __table_args__ = (
         UniqueConstraint("user_id", "idempotency_key", name="uq_booking_idempotency"),
@@ -580,7 +580,7 @@ class Incident(Base):
     organization: Mapped[Organization] = relationship("Organization")
     booking: Mapped[Booking] = relationship("Booking", back_populates="incidents")
     resource: Mapped[Resource] = relationship("Resource")
-    comments: Mapped[list[IncidentComment]] = relationship("IncidentComment", back_populates="incident", lazy="dynamic", cascade="all, delete-orphan")
+    comments: Mapped[list[IncidentComment]] = relationship("IncidentComment", back_populates="incident", lazy="selectin", cascade="all, delete-orphan")
 
 
 class IncidentComment(Base):

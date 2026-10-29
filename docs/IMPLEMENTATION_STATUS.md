@@ -30,16 +30,16 @@
 ### FR-02: Resource Listing
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Owner create/edit/publish/pause/archive resources | Mocked | `api.createResource`, `updateResource`, `publishResource` |
-| Listing fields: name, category, description, location, availability, condition, requirements, training, supervision, return rules, owner | Mocked | `Resource` type + seed data has all fields |
-| Resource status: DRAFT, PUBLISHED, PAUSED, MAINTENANCE, ARCHIVED | Mocked | `ResourceStatus` enum, seed resources use these |
-| Visibility ≠ permission | Mocked | `enforceTenantMatch()` + role checks in mock |
+| Owner create/edit/publish/pause/archive resources | Implemented | `backend/app/api/v1/resources.py:create_resource, update_resource, publish_resource`, `test_resources_catalogue.py` |
+| Listing fields: name, category, description, location, availability, condition, requirements, training, supervision, return rules, owner | Implemented | `ResourceRead` schema + `Resource` model with all required institutional fields |
+| Resource status: DRAFT, PUBLISHED, PAUSED, MAINTENANCE, ARCHIVED | Implemented | `ResourceStatus` enum, server-enforced lifecycle transitions |
+| Visibility ≠ permission | Implemented | Tenant RLS scoping + server-enforced `require_roles` permissions |
 
 ### FR-03: Discovery
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Search by text, filter by category, date/time, location, availability | Mocked | `api.getResources()` with filters |
-| Resource detail shows requirements before request | Mocked | `ResourceDetailPage` + `api.getResource()` |
+| Search by text, filter by category, date/time, location, availability | Implemented | `GET /api/v1/resources` with search, category, status, supervision, training filters |
+| Resource detail shows requirements before request | Implemented | `GET /api/v1/resources/{id}` returns specifications, requirements, assets, active policies, waitlist count |
 | Natural-language search → structured filters (AI assistive) | Mocked | `api.parseNaturalLanguageQuery()` with Gemini + deterministic fallback |
 
 ### FR-04: Eligibility
@@ -262,8 +262,8 @@
 | Demo login endpoint | Implemented | `backend/app/api/v1/auth.py:demo_login` (Phase 03) |
 | Session/JWT handling | Implemented | `backend/app/core/security.py`, `backend/app/api/deps.py` (Phase 03) |
 | Permission service + middleware | Implemented | `backend/app/api/deps.py:require_roles`, `backend/app/api/v1/admin.py` (Phase 03) |
-| Resource CRUD + availability | Planned | Phase 04 |
-| Asset registration + QR tokens | Planned | Phase 04 |
+| Resource CRUD + availability | Implemented | `backend/app/api/v1/resources.py` (`test_resources_catalogue.py`, Phase 04) |
+| Asset registration + QR tokens | Implemented | `backend/app/api/v1/assets.py`, `resources.py:create_asset_for_resource` (Phase 04) |
 | Policy engine (versioned, declarative) | Planned | Phase 05 |
 | Eligibility service | Planned | Phase 05 |
 | Booking state machine service | Planned | Phase 06 |
