@@ -115,8 +115,8 @@
 ### FR-13: Analytics
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Basic counts: active resources, requests, approvals, waitlisted, utilisation, incidents | Mocked | `getAnalyticsData()` returns resourceMetrics, fairnessByUser, demandByHourBlock, outcomeCounts |
-| Explain calculation, avoid false precision | Mocked | `plainSummary` in policies, utilisation shows formula |
+| Basic counts: active resources, requests, approvals, waitlisted, utilisation, incidents | Implemented | `backend/app/services/analytics.py:calculate_analytics_data`, `GET /api/v1/analytics/utilisation`, `GET /api/v1/analytics/export` CSV, tested in `test_analytics.py` |
+| Explain calculation, avoid false precision | Implemented | Operational formulas: 40h benchmark window, single-decimal rounding, student fairness share %, demand hour blocks |
 
 ---
 
