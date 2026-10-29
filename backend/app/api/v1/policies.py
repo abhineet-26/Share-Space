@@ -29,6 +29,7 @@ from app.schemas.policy import (
     PolicyPreviewPayload,
     PolicyPreviewResponse,
     PolicyRead,
+    PolicyScope,
     PolicyVersionCreate,
     PolicyVersionRead,
 )
@@ -50,11 +51,11 @@ def _to_policy_read(pol: Policy, versions: list[PolicyVersion] | None = None) ->
         organization_id=pol.organization_id,
         name=pol.name,
         description=pol.description,
-        scope={
-            "type": pol.scope_type.value if hasattr(pol.scope_type, "value") else str(pol.scope_type),
-            "id": pol.scope_id,
-            "label": pol.scope_label,
-        },
+        scope=PolicyScope(
+            type=pol.scope_type,
+            id=pol.scope_id,
+            label=pol.scope_label or "",
+        ),
         kind=pol.kind,
         status=pol.status,
         active_version=pol.active_version,
@@ -94,11 +95,7 @@ async def get_policy(
     _current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> PolicyRead:
-    stmt = (
-        select(Policy)
-        .options(selectinload(Policy.versions))
-        .where(Policy.id == policy_id)
-    )
+    stmt = select(Policy).options(selectinload(Policy.versions)).where(Policy.id == policy_id)
     res = await session.execute(stmt)
     policy = res.scalar_one_or_none()
     if not policy:
@@ -303,11 +300,7 @@ async def activate_policy_version(
     )
 
     await session.flush()
-    stmt = (
-        select(Policy)
-        .options(selectinload(Policy.versions))
-        .where(Policy.id == policy_id)
-    )
+    stmt = select(Policy).options(selectinload(Policy.versions)).where(Policy.id == policy_id)
     loaded = (await session.execute(stmt)).scalar_one()
     return _to_policy_read(loaded)
 
@@ -385,11 +378,7 @@ async def preview_policy_activation(
         sample_user = await session.get(User, payload.sample_user_id)
 
     if not sample_user:
-        user_stmt = (
-            select(User)
-            .where(User.organization_id == org_id)
-            .limit(1)
-        )
+        user_stmt = select(User).where(User.organization_id == org_id).limit(1)
         sample_user = (await session.execute(user_stmt)).scalar_one_or_none()
     if not sample_user:
         raise NotFoundError("User for simulation", org_id)

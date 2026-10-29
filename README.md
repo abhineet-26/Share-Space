@@ -98,6 +98,7 @@ backend/venv/bin/ruff check backend/
 bun run build    # or npm run build
 ```
 
+- Production Deployment Guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - Comprehensive Judge Demonstration Walkthrough: [docs/TESTING.md](docs/TESTING.md)
 - Complete Functional Requirements Audit (FR-01 to FR-22): [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md)
 - Project Memory & Architectural Decisions: [docs/MEMORY.md](docs/MEMORY.md)

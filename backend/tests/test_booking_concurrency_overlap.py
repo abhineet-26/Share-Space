@@ -53,7 +53,10 @@ async def test_overlapping_confirmed_bookings_rejected(app_session: AsyncSession
     with pytest.raises((IntegrityError, DBAPIError)) as excinfo:
         await app_session.flush()
 
-    assert "exclude_overlapping_confirmed_bookings" in str(excinfo.value).lower() or "exclusion" in str(excinfo.value).lower()
+    assert (
+        "exclude_overlapping_confirmed_bookings" in str(excinfo.value).lower()
+        or "exclusion" in str(excinfo.value).lower()
+    )
     await app_session.rollback()
 
 

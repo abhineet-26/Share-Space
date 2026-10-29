@@ -61,19 +61,18 @@ async def calculate_analytics_data(
     resource_metrics: list[ResourceMetricItem] = []
     for res in resources:
         res_bookings = [
-            b for b in bookings
+            b
+            for b in bookings
             if b.resource_id == res.id and b.status in COUNTED_UTILISATION_STATES
         ]
         booked_hours = sum(
-            max(0.0, (b.end_at - b.start_at).total_seconds() / 3600.0)
-            for b in res_bookings
+            max(0.0, (b.end_at - b.start_at).total_seconds() / 3600.0) for b in res_bookings
         )
         booked_hours = round(booked_hours * 10) / 10
         available_hours = 40.0
         utilisation_pct = min(100, round((booked_hours / available_hours) * 100))
         waitlisted_count = sum(
-            1 for b in bookings
-            if b.resource_id == res.id and b.status == BookingStatus.WAITLISTED
+            1 for b in bookings if b.resource_id == res.id and b.status == BookingStatus.WAITLISTED
         )
         incident_count = sum(1 for inc in incidents if inc.resource_id == res.id)
 
@@ -110,8 +109,7 @@ async def calculate_analytics_data(
         user_bookings = [b for b in bookings if b.user_id == u.id]
         user_counted = [b for b in user_bookings if b.status in COUNTED_UTILISATION_STATES]
         user_booked_hours = sum(
-            max(0.0, (b.end_at - b.start_at).total_seconds() / 3600.0)
-            for b in user_counted
+            max(0.0, (b.end_at - b.start_at).total_seconds() / 3600.0) for b in user_counted
         )
         user_booked_hours = round(user_booked_hours * 10) / 10
         share_pct = round((user_booked_hours / total_benchmark) * 100)
@@ -146,20 +144,20 @@ async def calculate_analytics_data(
     ]
     demand_by_hour_block: list[DemandByHourBlockItem] = []
     for label, start_h, end_h in blocks_def:
-        block_bookings = [
-            b for b in bookings
-            if start_h <= b.start_at.hour < end_h
-        ]
+        block_bookings = [b for b in bookings if start_h <= b.start_at.hour < end_h]
         electronics_cnt = sum(
-            1 for b in block_bookings
+            1
+            for b in block_bookings
             if resource_cat_map.get(b.resource_id) == ResourceCategory.ELECTRONICS.value
         )
         media_cnt = sum(
-            1 for b in block_bookings
+            1
+            for b in block_bookings
             if resource_cat_map.get(b.resource_id) == ResourceCategory.MEDIA_COMPUTING.value
         )
         spaces_cnt = sum(
-            1 for b in block_bookings
+            1
+            for b in block_bookings
             if resource_cat_map.get(b.resource_id) == ResourceCategory.SPACE.value
         )
         demand_by_hour_block.append(
@@ -177,8 +175,7 @@ async def calculate_analytics_data(
         st_val = b.status.value if hasattr(b.status, "value") else str(b.status)
         status_counts[st_val] = status_counts.get(st_val, 0) + 1
     outcome_counts = [
-        OutcomeCountItem(status=st, count=cnt)
-        for st, cnt in sorted(status_counts.items())
+        OutcomeCountItem(status=st, count=cnt) for st, cnt in sorted(status_counts.items())
     ]
 
     return AnalyticsUtilisationResponse(
@@ -193,25 +190,29 @@ def generate_utilisation_csv(data: AnalyticsUtilisationResponse) -> str:
     """Generate RFC 4180 CSV export of resource utilisation metrics."""
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "Resource ID",
-        "Resource Name",
-        "Category",
-        "Booked Hours",
-        "Available Hours",
-        "Utilisation %",
-        "Waitlisted Requests",
-        "Incident Count",
-    ])
+    writer.writerow(
+        [
+            "Resource ID",
+            "Resource Name",
+            "Category",
+            "Booked Hours",
+            "Available Hours",
+            "Utilisation %",
+            "Waitlisted Requests",
+            "Incident Count",
+        ]
+    )
     for item in data.resource_metrics:
-        writer.writerow([
-            item.resource_id,
-            item.name,
-            item.category,
-            f"{item.booked_hours:.1f}",
-            f"{item.available_hours:.1f}",
-            f"{item.utilisation_pct}%",
-            item.waitlisted_count,
-            item.incident_count,
-        ])
+        writer.writerow(
+            [
+                item.resource_id,
+                item.name,
+                item.category,
+                f"{item.booked_hours:.1f}",
+                f"{item.available_hours:.1f}",
+                f"{item.utilisation_pct}%",
+                item.waitlisted_count,
+                item.incident_count,
+            ]
+        )
     return output.getvalue()

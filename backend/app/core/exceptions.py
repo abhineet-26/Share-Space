@@ -44,7 +44,11 @@ class ForbiddenError(AppException):
             code="FORBIDDEN",
             message=f"Permission denied: {action} requires one of [{', '.join(required_roles)}]. Your active role is [{', '.join(current_roles)}].",
             status_code=status.HTTP_403_FORBIDDEN,
-            details={"action": action, "required_roles": required_roles, "current_roles": current_roles},
+            details={
+                "action": action,
+                "required_roles": required_roles,
+                "current_roles": current_roles,
+            },
         )
 
 
@@ -112,7 +116,9 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
     )
 
 
-async def fastapi_validation_exception_handler(request: Request, exc: FastAPIRequestValidationError) -> JSONResponse:
+async def fastapi_validation_exception_handler(
+    request: Request, exc: FastAPIRequestValidationError
+) -> JSONResponse:
     logger.warning(
         "validation_error",
         errors=exc.errors(),
@@ -121,11 +127,19 @@ async def fastapi_validation_exception_handler(request: Request, exc: FastAPIReq
     )
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"error": {"code": "VALIDATION_ERROR", "message": "Request validation failed", "details": exc.errors()}},
+        content={
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Request validation failed",
+                "details": exc.errors(),
+            }
+        },
     )
 
 
-async def pydantic_validation_exception_handler(request: Request, exc: PydanticValidationError) -> JSONResponse:
+async def pydantic_validation_exception_handler(
+    request: Request, exc: PydanticValidationError
+) -> JSONResponse:
     logger.warning(
         "pydantic_validation_error",
         errors=exc.errors(),
@@ -134,7 +148,13 @@ async def pydantic_validation_exception_handler(request: Request, exc: PydanticV
     )
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"error": {"code": "VALIDATION_ERROR", "message": "Request validation failed", "details": exc.errors()}},
+        content={
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Request validation failed",
+                "details": exc.errors(),
+            }
+        },
     )
 
 
@@ -150,20 +170,44 @@ async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSON
         if "idempotency" in error_str:
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
-                content={"error": {"code": "IDEMPOTENCY_CONFLICT", "message": "A request with this idempotency key already exists", "details": {}}},
+                content={
+                    "error": {
+                        "code": "IDEMPOTENCY_CONFLICT",
+                        "message": "A request with this idempotency key already exists",
+                        "details": {},
+                    }
+                },
             )
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
-            content={"error": {"code": "DUPLICATE_ENTRY", "message": "A record with this value already exists", "details": {}}},
+            content={
+                "error": {
+                    "code": "DUPLICATE_ENTRY",
+                    "message": "A record with this value already exists",
+                    "details": {},
+                }
+            },
         )
     if "exclude" in error_str or "overlap" in error_str:
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
-            content={"error": {"code": "OVERLAP_CONFLICT", "message": "Time slot overlaps an existing confirmed booking", "details": {}}},
+            content={
+                "error": {
+                    "code": "OVERLAP_CONFLICT",
+                    "message": "Time slot overlaps an existing confirmed booking",
+                    "details": {},
+                }
+            },
         )
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
-        content={"error": {"code": "INTEGRITY_ERROR", "message": "Database constraint violation", "details": {}}},
+        content={
+            "error": {
+                "code": "INTEGRITY_ERROR",
+                "message": "Database constraint violation",
+                "details": {},
+            }
+        },
     )
 
 
@@ -176,7 +220,13 @@ async def operational_error_handler(request: Request, exc: OperationalError) -> 
     )
     return JSONResponse(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        content={"error": {"code": "DATABASE_UNAVAILABLE", "message": "Database connection failed", "details": {}}},
+        content={
+            "error": {
+                "code": "DATABASE_UNAVAILABLE",
+                "message": "Database connection failed",
+                "details": {},
+            }
+        },
     )
 
 
@@ -189,7 +239,13 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"error": {"code": "INTERNAL_ERROR", "message": "An unexpected error occurred", "details": {}}},
+        content={
+            "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "An unexpected error occurred",
+                "details": {},
+            }
+        },
     )
 
 

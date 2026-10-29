@@ -48,9 +48,7 @@ async def resolve_active_policies_for_resource(
     effective_versions: list[PolicyVersion] = []
     for pol in active_policies:
         scope_type = (
-            pol.scope_type.value
-            if hasattr(pol.scope_type, "value")
-            else str(pol.scope_type)
+            pol.scope_type.value if hasattr(pol.scope_type, "value") else str(pol.scope_type)
         )
         scope_id = pol.scope_id
         matches = (
@@ -104,9 +102,7 @@ async def get_rolling_usage_hours(
     bookings = res.scalars().all()
 
     total_seconds = sum(
-        (b.end_at - b.start_at).total_seconds()
-        for b in bookings
-        if b.end_at and b.start_at
+        (b.end_at - b.start_at).total_seconds() for b in bookings if b.end_at and b.start_at
     )
     return round(total_seconds / 3600.0, 2)
 
@@ -128,7 +124,11 @@ async def evaluate_eligibility(  # noqa: PLR0912, PLR0913, PLR0915
     effective_versions = list(active_versions)
     if draft_policy_override:
         idx = next(
-            (i for i, v in enumerate(effective_versions) if v.policy_id == draft_policy_override.policy_id),
+            (
+                i
+                for i, v in enumerate(effective_versions)
+                if v.policy_id == draft_policy_override.policy_id
+            ),
             None,
         )
         if idx is not None:
@@ -311,7 +311,9 @@ async def evaluate_eligibility(  # noqa: PLR0912, PLR0913, PLR0915
 
     for pv in effective_versions:
         definition = pv.definition or {}
-        max_duration = definition.get("maxBookingDurationHours") or definition.get("max_booking_duration_hours")
+        max_duration = definition.get("maxBookingDurationHours") or definition.get(
+            "max_booking_duration_hours"
+        )
         if max_duration is not None and float(max_duration) < max_session_hours:
             max_session_hours = float(max_duration)
 
@@ -373,12 +375,16 @@ async def evaluate_eligibility(  # noqa: PLR0912, PLR0913, PLR0915
         )
 
     # 8. Human Review / Supervision Check
-    requires_approval_req = next((r for r in requirements if r.type == RequirementType.APPROVAL), None)
+    requires_approval_req = next(
+        (r for r in requirements if r.type == RequirementType.APPROVAL), None
+    )
     if requires_approval_req or resource.supervision != SupervisionLevel.NONE:
         checks.append(
             EligibilityCheck(
                 key="human_review",
-                label=requires_approval_req.label if requires_approval_req else "Owner / Manager Review",
+                label=requires_approval_req.label
+                if requires_approval_req
+                else "Owner / Manager Review",
                 status=CheckStatus.REVIEW_REQUIRED,
                 reason="Eligibility does not auto-approve access; an authorised owner or manager must review and confirm your request.",
                 next_step="Submit request to route to the manager review queue.",
@@ -391,7 +397,11 @@ async def evaluate_eligibility(  # noqa: PLR0912, PLR0913, PLR0915
     overall_status = (
         EligibilityOverallStatus.NOT_ELIGIBLE
         if has_fail
-        else (EligibilityOverallStatus.REVIEW_REQUIRED if has_review else EligibilityOverallStatus.ELIGIBLE)
+        else (
+            EligibilityOverallStatus.REVIEW_REQUIRED
+            if has_review
+            else EligibilityOverallStatus.ELIGIBLE
+        )
     )
 
     return EligibilityEvaluationResult(
@@ -400,6 +410,8 @@ async def evaluate_eligibility(  # noqa: PLR0912, PLR0913, PLR0915
         checks=checks,
         applied_policy_version_ids=[v.id for v in effective_versions],
         usage_hours_in_window=usage_hours_in_window,
-        max_hours_allowed=max_rolling_hours if max_rolling_hours < DEFAULT_UNLIMITED_HOURS else max_session_hours,
+        max_hours_allowed=max_rolling_hours
+        if max_rolling_hours < DEFAULT_UNLIMITED_HOURS
+        else max_session_hours,
         requested_hours=requested_hours,
     )

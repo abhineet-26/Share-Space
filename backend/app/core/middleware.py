@@ -108,7 +108,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Extract client IP or forwarded IP
         forwarded = request.headers.get("X-Forwarded-For")
-        client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
+        client_ip = (
+            forwarded.split(",")[0].strip()
+            if forwarded
+            else (request.client.host if request.client else "unknown")
+        )
 
         allowed, remaining, retry_after = rate_limiter.is_allowed(client_ip, category, limit)
 

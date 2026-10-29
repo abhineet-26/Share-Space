@@ -39,6 +39,7 @@ def create_refresh_token(data: dict) -> str:
 
 class InvalidTokenError(UnauthorizedError):
     """Raised when token is invalid or missing required claims."""
+
     pass
 
 

@@ -196,7 +196,9 @@ async def test_full_lifecycle_e2e_journey() -> None:  # noqa: PLR0915
         # Add comment on incident
         comment_resp = await client.post(
             f"/api/v1/incidents/{incident_id}/comments",
-            json={"message": "Inspected by lab technician. No functional impact on oscilloscope calibration."},
+            json={
+                "message": "Inspected by lab technician. No functional impact on oscilloscope calibration."
+            },
             headers=manager_headers,
         )
         assert comment_resp.status_code in (200, 201)
@@ -247,7 +249,9 @@ async def test_full_lifecycle_e2e_journey() -> None:  # noqa: PLR0915
         assert repair_resp.json()["valid"] is True
 
         # Re-verify ledger chain is restored
-        post_repair_verify = await client.get("/api/v1/audit-events/verify", headers=manager_headers)
+        post_repair_verify = await client.get(
+            "/api/v1/audit-events/verify", headers=manager_headers
+        )
         assert post_repair_verify.status_code == 200
         assert post_repair_verify.json()["valid"] is True
 

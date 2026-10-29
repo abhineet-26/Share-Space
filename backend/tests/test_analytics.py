@@ -112,7 +112,10 @@ async def test_export_utilisation_csv() -> None:
         assert "attachment" in resp.headers["content-disposition"]
 
         csv_text = resp.text
-        assert "Resource ID,Resource Name,Category,Booked Hours,Available Hours,Utilisation %,Waitlisted Requests,Incident Count" in csv_text
+        assert (
+            "Resource ID,Resource Name,Category,Booked Hours,Available Hours,Utilisation %,Waitlisted Requests,Incident Count"
+            in csv_text
+        )
         assert "res_scope" in csv_text
 
 

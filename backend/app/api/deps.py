@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Annotated
+from collections.abc import Callable, Coroutine
+from typing import Annotated, Any
 
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,7 +46,7 @@ async def get_current_user(
 def require_roles(
     required_roles: list[Role | str],
     action: str = "Access restricted resource",
-) -> Callable[..., User]:
+) -> Callable[..., Coroutine[Any, Any, User]]:
     """Dependency factory that enforces server-side role-based access control."""
     required_str_list = [r.value if isinstance(r, Role) else str(r) for r in required_roles]
 

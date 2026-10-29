@@ -59,5 +59,7 @@ async def process_outbox(
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, int]:
     """Trigger background delivery worker to flush pending outbox events."""
-    count = await process_outbox_events(session=session, organization_id=current_user.organization_id)
+    count = await process_outbox_events(
+        session=session, organization_id=current_user.organization_id
+    )
     return {"processed": count}

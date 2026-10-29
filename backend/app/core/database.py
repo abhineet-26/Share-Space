@@ -11,6 +11,7 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
+
 def _create_engine(url: str, is_test: bool = False):
     """Create async engine with appropriate pool settings for the database dialect."""
     if "sqlite" in url or is_test or settings.ENVIRONMENT in ("test", "development"):
@@ -28,11 +29,14 @@ def _create_engine(url: str, is_test: bool = False):
         max_overflow=20,
     )
 
+
 # Application engine (app role, no BYPASSRLS)
 engine = _create_engine(settings.DATABASE_URL, is_test=settings.ENVIRONMENT == "test")
 
 # Migration engine (migration role with BYPASSRLS)
-migration_engine = _create_engine(settings.DATABASE_MIGRATION_URL, is_test=settings.ENVIRONMENT == "test")
+migration_engine = _create_engine(
+    settings.DATABASE_MIGRATION_URL, is_test=settings.ENVIRONMENT == "test"
+)
 
 async_session_factory = async_sessionmaker(
     engine,

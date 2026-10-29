@@ -38,6 +38,7 @@ def update_updated_at(_mapper: Any, _connection: Any, target: Any) -> None:
 def generate_id(prefix: str = "") -> str:
     """Generate a ULID-based ID with optional prefix."""
     import ulid
+
     # ulid.new() returns a ULID object with .str attribute
     ulid_obj = ulid.new()
     return f"{prefix}_{ulid_obj.str.lower()}" if prefix else ulid_obj.str.lower()

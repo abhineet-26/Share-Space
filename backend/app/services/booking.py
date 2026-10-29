@@ -129,7 +129,10 @@ async def create_booking(
     if not start_at or not end_at:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "VALIDATION_ERROR", "message": "Both start and end times are required."},
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": "Both start and end times are required.",
+            },
         )
     if end_at <= start_at:
         raise HTTPException(
@@ -157,7 +160,9 @@ async def create_booking(
     )
 
     has_mandatory_fail = any(c.status == CheckStatus.FAIL for c in eval_result.checks)
-    has_conflict = any(c.key == "time_conflict" and c.status != CheckStatus.PASS for c in eval_result.checks)
+    has_conflict = any(
+        c.key == "time_conflict" and c.status != CheckStatus.PASS for c in eval_result.checks
+    )
 
     if has_conflict and not payload.join_waitlist_if_conflict:
         raise HTTPException(
@@ -176,9 +181,13 @@ async def create_booking(
         initial_status = BookingStatus.ELIGIBILITY_BLOCKED
     elif has_conflict and payload.join_waitlist_if_conflict:
         initial_status = BookingStatus.WAITLISTED
-        wl_stmt = select(func.count()).select_from(Booking).where(
-            Booking.resource_id == resource.id,
-            Booking.status == BookingStatus.WAITLISTED,
+        wl_stmt = (
+            select(func.count())
+            .select_from(Booking)
+            .where(
+                Booking.resource_id == resource.id,
+                Booking.status == BookingStatus.WAITLISTED,
+            )
         )
         wl_res = await session.execute(wl_stmt)
         current_waitlist_count = wl_res.scalar_one() or 0
@@ -201,7 +210,11 @@ async def create_booking(
     )
 
     first_fail = next((c for c in eval_result.checks if c.status == CheckStatus.FAIL), None)
-    decision_reason = f"Blocked by mandatory requirement: {first_fail.reason}" if has_mandatory_fail and first_fail else None
+    decision_reason = (
+        f"Blocked by mandatory requirement: {first_fail.reason}"
+        if has_mandatory_fail and first_fail
+        else None
+    )
 
     checks_json = [c.model_dump(by_alias=True) for c in eval_result.checks]
     priority_factors = {
@@ -238,7 +251,11 @@ async def create_booking(
     action_label = (
         "BOOKING_ELIGIBILITY_BLOCKED"
         if initial_status == BookingStatus.ELIGIBILITY_BLOCKED
-        else ("BOOKING_WAITLISTED" if initial_status == BookingStatus.WAITLISTED else "BOOKING_REQUESTED")
+        else (
+            "BOOKING_WAITLISTED"
+            if initial_status == BookingStatus.WAITLISTED
+            else "BOOKING_REQUESTED"
+        )
     )
 
     await append_ledger_event(
@@ -246,7 +263,9 @@ async def create_booking(
         organization_id=actor.organization_id,
         actor_id=actor.id,
         actor_name=actor.name,
-        actor_role=actor.roles[0].value if hasattr(actor.roles[0], "value") else str(actor.roles[0]),
+        actor_role=actor.roles[0].value
+        if hasattr(actor.roles[0], "value")
+        else str(actor.roles[0]),
         action=action_label,
         entity_type=LedgerEntityType.BOOKING,
         entity_id=booking.id,
@@ -279,11 +298,16 @@ async def cancel_booking(
         )
 
     actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
-    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    is_staff = any(
+        r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles
+    )
     if booking.user_id != actor.id and not is_staff:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "Only the requester or an authorised manager can cancel this booking."},
+            detail={
+                "code": "FORBIDDEN",
+                "message": "Only the requester or an authorised manager can cancel this booking.",
+            },
         )
 
     validate_transition(booking.status, BookingStatus.CANCELLED)
@@ -356,7 +380,9 @@ async def promote_next_waitlisted_if_slot_open(
     promoted = waitlisted[0]
     promoted.status = BookingStatus.PENDING_REVIEW
     promoted.waitlist_position = None
-    promoted.waitlist_reason = "Promoted from #1 on waitlist after conflicting reservation was released."
+    promoted.waitlist_reason = (
+        "Promoted from #1 on waitlist after conflicting reservation was released."
+    )
 
     # Re-index remaining waitlisted requests for this resource
     for idx, w in enumerate(waitlisted[1:]):
@@ -422,7 +448,10 @@ async def decide_booking(
     except KeyError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_DECISION", "message": f"Unknown decision '{payload.decision}'."},
+            detail={
+                "code": "INVALID_DECISION",
+                "message": f"Unknown decision '{payload.decision}'.",
+            },
         )
 
     validate_transition(booking.status, target_status)
@@ -467,10 +496,14 @@ async def decide_booking(
         booking.is_policy_override = payload.is_policy_override
 
     elif target_status == BookingStatus.WAITLISTED:
-        wl_stmt = select(func.count()).select_from(Booking).where(
-            Booking.resource_id == booking.resource_id,
-            Booking.status == BookingStatus.WAITLISTED,
-            Booking.id != booking.id,
+        wl_stmt = (
+            select(func.count())
+            .select_from(Booking)
+            .where(
+                Booking.resource_id == booking.resource_id,
+                Booking.status == BookingStatus.WAITLISTED,
+                Booking.id != booking.id,
+            )
         )
         wl_res = await session.execute(wl_stmt)
         cnt = wl_res.scalar_one() or 0
@@ -509,7 +542,11 @@ async def decide_booking(
         },
     )
 
-    notif_type = NotificationType.DECISION if target_status in [BookingStatus.APPROVED, BookingStatus.REJECTED] else NotificationType.WAITLIST_CHANGE
+    notif_type = (
+        NotificationType.DECISION
+        if target_status in [BookingStatus.APPROVED, BookingStatus.REJECTED]
+        else NotificationType.WAITLIST_CHANGE
+    )
     notif_title = f"Booking {target_status.value.replace('_', ' ').title()}"
     notif_msg = f"Your booking request for resource {booking.resource_id} status changed to {target_status.value}. Reason: {booking.decision_reason}"
     await create_notification(
@@ -543,17 +580,25 @@ async def check_in_booking(
         )
 
     actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
-    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    is_staff = any(
+        r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles
+    )
     if booking.user_id != actor.id and not is_staff:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "Only the booking holder or authorised staff can check in."},
+            detail={
+                "code": "FORBIDDEN",
+                "message": "Only the booking holder or authorised staff can check in.",
+            },
         )
 
     if not payload.acknowledged_rules:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "ACKNOWLEDGEMENT_REQUIRED", "message": "You must acknowledge the usage and safety rules before check-in."},
+            detail={
+                "code": "ACKNOWLEDGEMENT_REQUIRED",
+                "message": "You must acknowledge the usage and safety rules before check-in.",
+            },
         )
 
     validate_transition(booking.status, BookingStatus.CHECKED_OUT_TO_USER)
@@ -656,11 +701,16 @@ async def return_booking(
         )
 
     actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
-    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    is_staff = any(
+        r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles
+    )
     if booking.user_id != actor.id and not is_staff:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "Only the booking holder or authorised staff can return this resource."},
+            detail={
+                "code": "FORBIDDEN",
+                "message": "Only the booking holder or authorised staff can return this resource.",
+            },
         )
 
     # Check resource supervision level
@@ -669,11 +719,16 @@ async def return_booking(
     resource = res_res.scalar_one()
 
     requires_staff_confirmation = (
-        resource.supervision in [SupervisionLevel.STAFF_CONFIRMATION, SupervisionLevel.STAFF_PRESENT]
+        resource.supervision
+        in [SupervisionLevel.STAFF_CONFIRMATION, SupervisionLevel.STAFF_PRESENT]
         and not is_staff
     )
 
-    target_status = BookingStatus.RETURN_PENDING_CONFIRMATION if requires_staff_confirmation else BookingStatus.CLOSED
+    target_status = (
+        BookingStatus.RETURN_PENDING_CONFIRMATION
+        if requires_staff_confirmation
+        else BookingStatus.CLOSED
+    )
     validate_transition(booking.status, target_status)
 
     now = datetime.now(UTC)
@@ -772,7 +827,9 @@ async def return_booking(
 
     await session.flush()
 
-    action_label = "BOOKING_RETURN_PENDING_CONFIRMATION" if requires_staff_confirmation else "BOOKING_CLOSED"
+    action_label = (
+        "BOOKING_RETURN_PENDING_CONFIRMATION" if requires_staff_confirmation else "BOOKING_CLOSED"
+    )
     await append_ledger_event(
         session=session,
         organization_id=actor.organization_id,
@@ -812,11 +869,16 @@ async def confirm_staff_handover_or_return(
 ) -> Booking:
     """Authorised staff confirmation of handover or return for supervised equipment."""
     actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
-    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    is_staff = any(
+        r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles
+    )
     if not is_staff:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "Only authorised staff can confirm handover or return."},
+            detail={
+                "code": "FORBIDDEN",
+                "message": "Only authorised staff can confirm handover or return.",
+            },
         )
 
     stmt = select(Booking).where(Booking.id == booking_id)
@@ -885,7 +947,8 @@ async def confirm_staff_handover_or_return(
             action="RETURN_STAFF_CONFIRMED",
             entity_type=LedgerEntityType.BOOKING,
             entity_id=booking.id,
-            reason=notes.strip() or "Technician inspected returned resource and confirmed operational closure.",
+            reason=notes.strip()
+            or "Technician inspected returned resource and confirmed operational closure.",
             metadata={"bookingId": booking.id, "status": "CLOSED"},
         )
 

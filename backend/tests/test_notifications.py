@@ -160,9 +160,7 @@ async def test_lifecycle_booking_decision_creates_notification_and_outbox() -> N
 
         # 4. Check OutboxEvent in DB
         async with migration_session_factory() as db:
-            stmt = select(OutboxEvent).where(
-                OutboxEvent.event_type == "NOTIFICATION_DECISION"
-            )
+            stmt = select(OutboxEvent).where(OutboxEvent.event_type == "NOTIFICATION_DECISION")
             res = await db.execute(stmt)
             outbox_entries = list(res.scalars().all())
             assert len(outbox_entries) >= 1

@@ -28,10 +28,14 @@ def canonical_json(obj: Any) -> str:  # noqa: PLR0911
         return "[" + ",".join(canonical_json(x) for x in obj) + "]"
     if isinstance(obj, dict):
         sorted_keys = sorted(obj.keys())
-        return "{" + ",".join(
-            json.dumps(k, ensure_ascii=False) + ":" + canonical_json(obj[k])
-            for k in sorted_keys
-        ) + "}"
+        return (
+            "{"
+            + ",".join(
+                json.dumps(k, ensure_ascii=False) + ":" + canonical_json(obj[k])
+                for k in sorted_keys
+            )
+            + "}"
+        )
     return json.dumps(obj, separators=(",", ":"), ensure_ascii=False)
 
 
@@ -49,17 +53,19 @@ def compute_ledger_event_hash(  # noqa: PLR0913
     metadata: dict[str, Any],
 ) -> str:
     """Compute SHA-256 hash for ledger event matching frontend hash-chain calculation."""
-    payload = canonical_json({
-        "organizationId": organization_id,
-        "seq": seq,
-        "actorId": actor_id,
-        "action": action,
-        "entityType": entity_type,
-        "entityId": entity_id,
-        "occurredAt": occurred_at,
-        "reason": reason or "",
-        "metadata": metadata or {},
-    })
+    payload = canonical_json(
+        {
+            "organizationId": organization_id,
+            "seq": seq,
+            "actorId": actor_id,
+            "action": action,
+            "entityType": entity_type,
+            "entityId": entity_id,
+            "occurredAt": occurred_at,
+            "reason": reason or "",
+            "metadata": metadata or {},
+        }
+    )
     msg = f"{prev_hash}||{payload}".encode()
     return hashlib.sha256(msg).hexdigest()
 
@@ -182,7 +188,9 @@ async def verify_ledger_chain(
             seq=ev.seq,
             actor_id=ev.actor_id,
             action=ev.action,
-            entity_type=ev.entity_type.value if hasattr(ev.entity_type, "value") else str(ev.entity_type),
+            entity_type=ev.entity_type.value
+            if hasattr(ev.entity_type, "value")
+            else str(ev.entity_type),
             entity_id=ev.entity_id,
             occurred_at=ev.occurred_at.isoformat(),
             reason=ev.reason,
@@ -266,10 +274,8 @@ async def repair_ledger_chain(organization_id: str) -> dict[str, Any]:
         for idx, ev in enumerate(events):
             ev.seq = idx + 1
             if ev.reason and "[TAMPERED IN MEMORY] " in ev.reason:
-                ev.reason = (
-                    ev.reason
-                    .replace("[TAMPERED IN MEMORY] ", "")
-                    .replace(" (unauthorised edit)", "")
+                ev.reason = ev.reason.replace("[TAMPERED IN MEMORY] ", "").replace(
+                    " (unauthorised edit)", ""
                 )
             ev.prev_hash = expected_prev
             ev.hash = compute_ledger_event_hash(
@@ -278,7 +284,9 @@ async def repair_ledger_chain(organization_id: str) -> dict[str, Any]:
                 seq=ev.seq,
                 actor_id=ev.actor_id,
                 action=ev.action,
-                entity_type=ev.entity_type.value if hasattr(ev.entity_type, "value") else str(ev.entity_type),
+                entity_type=ev.entity_type.value
+                if hasattr(ev.entity_type, "value")
+                else str(ev.entity_type),
                 entity_id=ev.entity_id,
                 occurred_at=ev.occurred_at.isoformat(),
                 reason=ev.reason,

@@ -64,7 +64,9 @@ class PolicyRead(CamelModel):
     def populate_scope(cls, data: Any) -> Any:
         if hasattr(data, "scope_type") and not hasattr(data, "scope"):
             scope_dict = {
-                "type": data.scope_type.value if hasattr(data.scope_type, "value") else str(data.scope_type),
+                "type": data.scope_type.value
+                if hasattr(data.scope_type, "value")
+                else str(data.scope_type),
                 "id": data.scope_id,
                 "label": data.scope_label,
             }

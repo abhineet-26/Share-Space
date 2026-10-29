@@ -31,22 +31,21 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = Field(
         default="sqlite+aiosqlite:///./sharespace.db",
-        description="Async PostgreSQL URL for app role"
+        description="Async PostgreSQL URL for app role",
     )
     DATABASE_MIGRATION_URL: str = Field(
         default="sqlite+aiosqlite:///./sharespace.db",
-        description="Async PostgreSQL URL for migration role"
+        description="Async PostgreSQL URL for migration role",
     )
     SYNC_DATABASE_URL: str = Field(
-        default="sqlite:///./sharespace.db",
-        description="Sync PostgreSQL URL for Alembic"
+        default="sqlite:///./sharespace.db", description="Sync PostgreSQL URL for Alembic"
     )
 
     # Security
     SECRET_KEY: str = Field(
         default="test-secret-key-for-local-development-only-32-chars-minimum-length",
         min_length=32,
-        description="JWT secret key (min 32 chars)"
+        description="JWT secret key (min 32 chars)",
     )
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30

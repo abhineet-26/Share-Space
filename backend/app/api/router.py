@@ -29,5 +29,3 @@ api_router.include_router(audit_events_router)
 api_router.include_router(notifications_router)
 api_router.include_router(analytics_router)
 api_router.include_router(profile_router)
-
-

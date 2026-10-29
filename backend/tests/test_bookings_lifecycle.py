@@ -184,7 +184,10 @@ async def test_cancel_booking_permissions() -> None:
         )
         assert resp_cancel.status_code == 200
         assert resp_cancel.json()["status"] == "CANCELLED"
-        assert resp_cancel.json()["decisionReason"] == "Lab project partner fell ill, rescheduling session."
+        assert (
+            resp_cancel.json()["decisionReason"]
+            == "Lab project partner fell ill, rescheduling session."
+        )
 
 
 @pytest.mark.asyncio
@@ -240,7 +243,10 @@ async def test_decide_booking_requires_manager_role_and_reason() -> None:
         res = resp_ok.json()
         assert res["status"] == "APPROVED"
         assert res["decidedBy"] == "usr_ravi"
-        assert res["decisionReason"] == "Approved for robotics team sprint review during verified open hours."
+        assert (
+            res["decisionReason"]
+            == "Approved for robotics team sprint review during verified open hours."
+        )
 
 
 @pytest.mark.asyncio

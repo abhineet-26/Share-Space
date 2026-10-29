@@ -45,3 +45,7 @@ backend/.cpython3.11/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+
+# Local Agent Skills (Keep strictly local, never push to git)
+.agents/
+agents/

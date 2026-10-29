@@ -70,9 +70,7 @@ async def seed_database(session: AsyncSession) -> None:
     await session.execute(delete(User))
     await session.execute(delete(Organization))
     # Re-enable ledger immutability trigger
-    await session.execute(
-        text("ALTER TABLE ledgerevent ENABLE TRIGGER trg_protect_ledger_events;")
-    )
+    await session.execute(text("ALTER TABLE ledgerevent ENABLE TRIGGER trg_protect_ledger_events;"))
     # Flush deletions
     await session.flush()
 
@@ -394,7 +392,14 @@ async def seed_database(session: AsyncSession) -> None:
             condition=ConditionLevel.EXCELLENT,
             status=ResourceStatus.PUBLISHED,
             supervision=SupervisionLevel.STAFF_CONFIRMATION,
-            accessories=["Body Cap", "28-70mm Zoom Lens", "NP-FZ100 Batteries x2", "Dual Charger", "128GB V90 SD Card", "Padded Carry Bag"],
+            accessories=[
+                "Body Cap",
+                "28-70mm Zoom Lens",
+                "NP-FZ100 Batteries x2",
+                "Dual Charger",
+                "128GB V90 SD Card",
+                "Padded Carry Bag",
+            ],
             usage_rules="Store in carry case when moving. Never leave unattended in open labs.",
             return_rules="Return all batteries charged. Ensure lens elements are free of fingerprints.",
             cancellation_policy="Requires 4 hours advance cancellation to free kit for peers.",
@@ -416,7 +421,12 @@ async def seed_database(session: AsyncSession) -> None:
             condition=ConditionLevel.GOOD,
             status=ResourceStatus.PUBLISHED,
             supervision=SupervisionLevel.NONE,
-            accessories=["Chisel Tip 2.4mm", "Conical Tip 0.8mm", "Brass Sponge", "ESD Ground Cord"],
+            accessories=[
+                "Chisel Tip 2.4mm",
+                "Conical Tip 0.8mm",
+                "Brass Sponge",
+                "ESD Ground Cord",
+            ],
             usage_rules="Always turn off power unit when leaving bench. Wear safety goggles.",
             return_rules="Clean tip with brass wool and tin tip with fresh solder before switching off.",
             cancellation_policy="Flexible cancellation.",
@@ -438,7 +448,11 @@ async def seed_database(session: AsyncSession) -> None:
             condition=ConditionLevel.EXCELLENT,
             status=ResourceStatus.PUBLISHED,
             supervision=SupervisionLevel.NONE,
-            accessories=["Banana-to-Alligator Cables x3", "Banana-to-Minigrabber Cable", "AC Power Cable"],
+            accessories=[
+                "Banana-to-Alligator Cables x3",
+                "Banana-to-Minigrabber Cable",
+                "AC Power Cable",
+            ],
             usage_rules="Set over-voltage and over-current protection limits before connecting DUT.",
             return_rules="Disconnect all output leads and power down.",
             cancellation_policy="Flexible cancellation.",
@@ -460,7 +474,12 @@ async def seed_database(session: AsyncSession) -> None:
             condition=ConditionLevel.EXCELLENT,
             status=ResourceStatus.PUBLISHED,
             supervision=SupervisionLevel.NONE,
-            accessories=["TL75 Test Leads", "AC175 Alligator Clips", "80BK Temperature Probe", "Holster"],
+            accessories=[
+                "TL75 Test Leads",
+                "AC175 Alligator Clips",
+                "80BK Temperature Probe",
+                "Holster",
+            ],
             usage_rules="Never exceed rated input voltages.",
             return_rules="Turn selector dial to OFF position.",
             cancellation_policy="Flexible cancellation.",
@@ -482,7 +501,13 @@ async def seed_database(session: AsyncSession) -> None:
             condition=ConditionLevel.GOOD,
             status=ResourceStatus.PUBLISHED,
             supervision=SupervisionLevel.NONE,
-            accessories=["Quick Release Plate", "Tripod Bag", "Godox LED Light Panel", "Light Stand", "AC Adapter"],
+            accessories=[
+                "Quick Release Plate",
+                "Tripod Bag",
+                "Godox LED Light Panel",
+                "Light Stand",
+                "AC Adapter",
+            ],
             usage_rules="Tighten pan/tilt locks before moving.",
             return_rules="Collapse legs and pack in padded carrying case.",
             cancellation_policy="Flexible cancellation.",
@@ -526,7 +551,12 @@ async def seed_database(session: AsyncSession) -> None:
             condition=ConditionLevel.EXCELLENT,
             status=ResourceStatus.PUBLISHED,
             supervision=SupervisionLevel.NONE,
-            accessories=["HDMI Cable", "USB-C Display Hub", "Whiteboard Marker Set x4", "Smart TV Remote"],
+            accessories=[
+                "HDMI Cable",
+                "USB-C Display Hub",
+                "Whiteboard Marker Set x4",
+                "Smart TV Remote",
+            ],
             usage_rules="Keep room door closed. Maximum capacity 8 persons.",
             return_rules="Wipe whiteboard clean. Return chairs to conference configuration.",
             cancellation_policy="Cancel 2 hours before booking start.",
@@ -616,16 +646,26 @@ async def seed_database(session: AsyncSession) -> None:
     print("Seeding availability windows...")
     windows = [
         AvailabilityWindow(resource_id="res_scope", day_of_week="ALL", start="08:00", end="20:00"),
-        AvailabilityWindow(resource_id="res_3dprint", day_of_week="WEEKDAY", start="09:00", end="18:00"),
+        AvailabilityWindow(
+            resource_id="res_3dprint", day_of_week="WEEKDAY", start="09:00", end="18:00"
+        ),
         AvailabilityWindow(resource_id="res_camera", day_of_week="ALL", start="07:00", end="21:00"),
-        AvailabilityWindow(resource_id="res_soldering", day_of_week="WEEKDAY", start="09:00", end="18:00"),
+        AvailabilityWindow(
+            resource_id="res_soldering", day_of_week="WEEKDAY", start="09:00", end="18:00"
+        ),
         AvailabilityWindow(resource_id="res_psu", day_of_week="ALL", start="08:00", end="20:00"),
         AvailabilityWindow(resource_id="res_dmm", day_of_week="ALL", start="08:00", end="20:00"),
         AvailabilityWindow(resource_id="res_tripod", day_of_week="ALL", start="07:00", end="21:00"),
         AvailabilityWindow(resource_id="res_gpu", day_of_week="ALL", start="00:00", end="23:59"),
-        AvailabilityWindow(resource_id="res_room204", day_of_week="ALL", start="08:00", end="22:00"),
-        AvailabilityWindow(resource_id="res_meeting_b", day_of_week="WEEKDAY", start="09:00", end="19:00"),
-        AvailabilityWindow(resource_id="res_harbour_laser", day_of_week="WEEKDAY", start="10:00", end="19:00"),
+        AvailabilityWindow(
+            resource_id="res_room204", day_of_week="ALL", start="08:00", end="22:00"
+        ),
+        AvailabilityWindow(
+            resource_id="res_meeting_b", day_of_week="WEEKDAY", start="09:00", end="19:00"
+        ),
+        AvailabilityWindow(
+            resource_id="res_harbour_laser", day_of_week="WEEKDAY", start="10:00", end="19:00"
+        ),
     ]
     session.add_all(windows)
 
@@ -744,7 +784,13 @@ async def seed_database(session: AsyncSession) -> None:
             idempotency_key="idemp_aarav_dmm_002",
             policy_version_ids=["polv_nit_elec_v1"],
             eligibility_checks=[
-                {"checkKey": "TRAINING_ELEC_INDUCTION", "label": "Electronics Lab Induction", "status": "PASS", "reason": "Verified", "blocking": True}
+                {
+                    "checkKey": "TRAINING_ELEC_INDUCTION",
+                    "label": "Electronics Lab Induction",
+                    "status": "PASS",
+                    "reason": "Verified",
+                    "blocking": True,
+                }
             ],
             decision_reason="Approved standard checkout.",
             decided_by="usr_meera",
@@ -764,7 +810,13 @@ async def seed_database(session: AsyncSession) -> None:
             idempotency_key="idemp_kabir_solder_003",
             policy_version_ids=["polv_nit_elec_v1"],
             eligibility_checks=[
-                {"checkKey": "TRAINING_ELEC_INDUCTION", "label": "Electronics Lab Induction", "status": "PASS", "reason": "Verified", "blocking": True}
+                {
+                    "checkKey": "TRAINING_ELEC_INDUCTION",
+                    "label": "Electronics Lab Induction",
+                    "status": "PASS",
+                    "reason": "Verified",
+                    "blocking": True,
+                }
             ],
             decision_reason="Auto-approved under open lab hours policy.",
             decided_by="usr_meera",
@@ -786,7 +838,13 @@ async def seed_database(session: AsyncSession) -> None:
             waitlist_position=1,
             waitlist_reason="Slot currently held by higher priority capstone team; candidate promoted automatically if released.",
             eligibility_checks=[
-                {"checkKey": "VERIFICATION_STATUS", "label": "Student Verification", "status": "PASS", "reason": "Active enrolled student", "blocking": True}
+                {
+                    "checkKey": "VERIFICATION_STATUS",
+                    "label": "Student Verification",
+                    "status": "PASS",
+                    "reason": "Active enrolled student",
+                    "blocking": True,
+                }
             ],
         ),
         # 5. Kabir's rejected request with mandatory reason (REJECTED)
@@ -805,7 +863,13 @@ async def seed_database(session: AsyncSession) -> None:
             decided_by="usr_ravi",
             decided_at=now - timedelta(hours=6),
             eligibility_checks=[
-                {"checkKey": "ACADEMIC_PURPOSE", "label": "Academic Project Justification", "status": "FAIL", "reason": "Requires faculty-approved course/capstone code", "blocking": True}
+                {
+                    "checkKey": "ACADEMIC_PURPOSE",
+                    "label": "Academic Project Justification",
+                    "status": "FAIL",
+                    "reason": "Requires faculty-approved course/capstone code",
+                    "blocking": True,
+                }
             ],
         ),
         # 6. Past completed and closed booking with condition reports (CLOSED)
@@ -825,7 +889,13 @@ async def seed_database(session: AsyncSession) -> None:
             decided_by="usr_meera",
             decided_at=now - timedelta(days=3),
             eligibility_checks=[
-                {"checkKey": "TRAINING_ELEC_INDUCTION", "label": "Electronics Lab Induction", "status": "PASS", "reason": "Verified", "blocking": True}
+                {
+                    "checkKey": "TRAINING_ELEC_INDUCTION",
+                    "label": "Electronics Lab Induction",
+                    "status": "PASS",
+                    "reason": "Verified",
+                    "blocking": True,
+                }
             ],
             handover_confirmed_by="usr_ravi",
             handover_confirmed_at=now - timedelta(days=2, hours=4),
@@ -845,7 +915,13 @@ async def seed_database(session: AsyncSession) -> None:
             idempotency_key="idemp_rohan_laser_007",
             policy_version_ids=[],
             eligibility_checks=[
-                {"checkKey": "TRAINING_LASER_CERT", "label": "Laser Safety Level 2", "status": "PASS", "reason": "Certified", "blocking": True}
+                {
+                    "checkKey": "TRAINING_LASER_CERT",
+                    "label": "Laser Safety Level 2",
+                    "status": "PASS",
+                    "reason": "Certified",
+                    "blocking": True,
+                }
             ],
             decision_reason="Approved by shop manager.",
             decided_by="usr_rohan",
@@ -966,7 +1042,11 @@ async def seed_database(session: AsyncSession) -> None:
             id="out_001",
             organization_id="org_nit",
             event_type="BOOKING_APPROVED",
-            payload={"bookingId": "bkg_aarav_scope_approved", "userId": "usr_aarav", "resourceName": "Keysight InfiniiVision 100MHz Digital Oscilloscope"},
+            payload={
+                "bookingId": "bkg_aarav_scope_approved",
+                "userId": "usr_aarav",
+                "resourceName": "Keysight InfiniiVision 100MHz Digital Oscilloscope",
+            },
             status=OutboxStatus.DELIVERED,
             attempts=1,
             processed_at=now - timedelta(hours=4),
@@ -1000,7 +1080,10 @@ async def seed_database(session: AsyncSession) -> None:
         entity_type=LedgerEntityType.RESOURCE,
         entity_id="res_scope",
         reason="Commissioned Keysight Oscilloscope for student electronics lab access",
-        metadata={"resourceName": "Keysight InfiniiVision 100MHz Digital Oscilloscope", "category": "ELECTRONICS"},
+        metadata={
+            "resourceName": "Keysight InfiniiVision 100MHz Digital Oscilloscope",
+            "category": "ELECTRONICS",
+        },
         occurred_at=now - timedelta(days=30),
     )
     await append_ledger_event(
@@ -1013,7 +1096,11 @@ async def seed_database(session: AsyncSession) -> None:
         entity_type=LedgerEntityType.BOOKING,
         entity_id="bkg_aarav_scope_approved",
         reason="Approved for capstone testing during scheduled lab supervisor hours.",
-        metadata={"userId": "usr_aarav", "resourceId": "res_scope", "startAt": (now + timedelta(hours=2)).isoformat()},
+        metadata={
+            "userId": "usr_aarav",
+            "resourceId": "res_scope",
+            "startAt": (now + timedelta(hours=2)).isoformat(),
+        },
         occurred_at=now - timedelta(hours=4),
     )
     await append_ledger_event(
@@ -1041,7 +1128,10 @@ async def seed_database(session: AsyncSession) -> None:
         entity_type=LedgerEntityType.RESOURCE,
         entity_id="res_harbour_laser",
         reason="Harbour Makerspace laser cutter published for certified members",
-        metadata={"resourceName": "Epilog Fusion Pro 48 CO2 Laser Cutter", "category": "ELECTRONICS"},
+        metadata={
+            "resourceName": "Epilog Fusion Pro 48 CO2 Laser Cutter",
+            "category": "ELECTRONICS",
+        },
         occurred_at=now - timedelta(days=10),
     )
 
@@ -1049,8 +1139,12 @@ async def seed_database(session: AsyncSession) -> None:
     print("Seed complete! Verifying ledger chains...")
     res_nit = await verify_ledger_chain(session, "org_nit")
     res_harbour = await verify_ledger_chain(session, "org_harbour")
-    print(f"org_nit ledger verification: valid={res_nit['valid']}, count={res_nit['checked_count']}, head_hash={res_nit['head_hash'][:16]}...")
-    print(f"org_harbour ledger verification: valid={res_harbour['valid']}, count={res_harbour['checked_count']}, head_hash={res_harbour['head_hash'][:16]}...")
+    print(
+        f"org_nit ledger verification: valid={res_nit['valid']}, count={res_nit['checked_count']}, head_hash={res_nit['head_hash'][:16]}..."
+    )
+    print(
+        f"org_harbour ledger verification: valid={res_harbour['valid']}, count={res_harbour['checked_count']}, head_hash={res_harbour['head_hash'][:16]}..."
+    )
     assert res_nit["valid"] is True
     assert res_harbour["valid"] is True
     print("All ledger chains verified successfully!")

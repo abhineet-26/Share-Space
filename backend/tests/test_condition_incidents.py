@@ -139,7 +139,10 @@ async def test_supervised_return_flow_and_staff_confirmation() -> None:
         resp_confirm = await client.post(
             "/api/v1/bookings/bkg_kabir_solder_return_pending/return-confirmation",
             headers={"Authorization": f"Bearer {token_manager}"},
-            json={"stage": "RETURN", "notes": "Inspected solder tip and ESD ground clip. Closure approved."},
+            json={
+                "stage": "RETURN",
+                "notes": "Inspected solder tip and ESD ground clip. Closure approved.",
+            },
         )
         assert resp_confirm.status_code == 200
         bkg = resp_confirm.json()
@@ -178,7 +181,9 @@ async def test_incident_reporting_review_and_zero_automated_penalty() -> None:
         resp_comment = await client.post(
             f"/api/v1/incidents/{incident_id}/comments",
             headers={"Authorization": f"Bearer {token_student}"},
-            json={"message": "Noticed it after unpacking from storage case; did not force the twist-lock."},
+            json={
+                "message": "Noticed it after unpacking from storage case; did not force the twist-lock."
+            },
         )
         assert resp_comment.status_code == 201
         assert resp_comment.json()["authorId"] == "usr_aarav"

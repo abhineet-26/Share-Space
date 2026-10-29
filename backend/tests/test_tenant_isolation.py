@@ -115,9 +115,7 @@ async def test_cross_tenant_update_denied_by_rls(app_session: AsyncSession) -> N
     await set_tenant_context(app_session, "org_nit")
 
     # User in org_nit tries to query and update Rohan's record in org_harbour
-    result = await app_session.execute(
-        select(User).where(User.id == "usr_rohan")
-    )
+    result = await app_session.execute(select(User).where(User.id == "usr_rohan"))
     user = result.scalar_one_or_none()
     # Should not even be visible
     assert user is None

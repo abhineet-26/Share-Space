@@ -16,8 +16,8 @@ from app.models import (
     Organization,
     Role,
     TrainingRecord,
+    TrainingStatus,
     User,
-    VerificationStatus,
 )
 from app.schemas.analytics import (
     AdminUsersResponse,
@@ -62,11 +62,10 @@ async def update_user_roles(
         raise NotFoundError("User", user_id)
 
     prev_roles = [r.value if hasattr(r, "value") else str(r) for r in target_user.roles]
-    new_roles = [
-        r.value if hasattr(r, "value") else str(r)
-        for r in (payload.roles or [Role.USER])
+    target_user.roles = [
+        Role(r) if isinstance(r, str) else r for r in (payload.roles or [Role.USER])
     ]
-    target_user.roles = new_roles
+    new_roles = [r.value if hasattr(r, "value") else str(r) for r in target_user.roles]
 
     # Append audit event to tamper-evident Trust Ledger
     actor_role_str = (
@@ -104,7 +103,11 @@ async def update_user_roles(
 async def get_admin_directory(
     current_user: Annotated[
         User,
-        Depends(require_roles([Role.ADMIN, Role.MANAGER, Role.OWNER], "View organisation user directory")),
+        Depends(
+            require_roles(
+                [Role.ADMIN, Role.MANAGER, Role.OWNER], "View organisation user directory"
+            )
+        ),
     ],
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> AdminUsersResponse:
@@ -116,7 +119,9 @@ async def get_admin_directory(
     users = list(u_res.scalars().all())
 
     # Fetch training records in organization
-    t_stmt = select(TrainingRecord).where(TrainingRecord.organization_id == current_user.organization_id)
+    t_stmt = select(TrainingRecord).where(
+        TrainingRecord.organization_id == current_user.organization_id
+    )
     t_res = await session.execute(t_stmt)
     trainings = list(t_res.scalars().all())
 
@@ -180,9 +185,9 @@ async def verify_user_training(
     record = res.scalar_one_or_none()
 
     try:
-        new_status = VerificationStatus(payload.status.upper())
+        new_status = TrainingStatus(payload.status.upper())
     except ValueError:
-        new_status = VerificationStatus.VERIFIED
+        new_status = TrainingStatus.VERIFIED
 
     if record:
         record.status = new_status

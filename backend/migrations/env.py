@@ -14,6 +14,7 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from app.core.config import get_settings
 from app.models.base import Base
+
 # Import all models to register them with Base.metadata
 from app.models import (  # noqa: F401
     Organization,
@@ -91,4 +92,5 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     import asyncio
+
     asyncio.run(run_migrations_online())

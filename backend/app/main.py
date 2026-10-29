@@ -22,13 +22,23 @@ logger = get_logger(__name__)
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup
     configure_logging()
-    logger.info("application_startup", app_name=settings.APP_NAME, version=settings.APP_VERSION, environment=settings.ENVIRONMENT)
+    logger.info(
+        "application_startup",
+        app_name=settings.APP_NAME,
+        version=settings.APP_VERSION,
+        environment=settings.ENVIRONMENT,
+    )
 
     # Verify database connectivity
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
-        logger.info("database_connected", url=settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else "configured")
+        logger.info(
+            "database_connected",
+            url=settings.DATABASE_URL.split("@")[-1]
+            if "@" in settings.DATABASE_URL
+            else "configured",
+        )
     except Exception as e:
         logger.exception("database_connection_failed", error=str(e))
         if settings.is_production:
@@ -80,6 +90,7 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def add_request_id(request: Request, call_next):
         import ulid
+
         request_id = request.headers.get("X-Request-ID") or ulid.new().str
         request.state.request_id = request_id
         response = await call_next(request)
@@ -92,7 +103,12 @@ def create_app() -> FastAPI:
     # Health check endpoints (no auth required)
     @app.get("/healthz", tags=["Health"])
     async def healthz():
-        return {"status": "ok", "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()}
+        return {
+            "status": "ok",
+            "timestamp": __import__("datetime")
+            .datetime.now(__import__("datetime").timezone.utc)
+            .isoformat(),
+        }
 
     @app.get("/readyz", tags=["Health"])
     async def readyz():
@@ -108,11 +124,14 @@ def create_app() -> FastAPI:
             "status": "ready" if db_ok else "not_ready",
             "database": "connected" if db_ok else "disconnected",
             "mode": settings.ENVIRONMENT,
-            "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+            "timestamp": __import__("datetime")
+            .datetime.now(__import__("datetime").timezone.utc)
+            .isoformat(),
         }
 
     # API router will be included here
     from app.api.router import api_router
+
     app.include_router(api_router, prefix="/api/v1")
 
     return app

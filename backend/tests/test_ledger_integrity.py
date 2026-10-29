@@ -79,11 +79,14 @@ async def test_tamper_detection_flags_first_invalid_seq(admin_session: AsyncSess
 
     # Re-run seed to restore clean state for other tests
     from scripts.seed import seed_database
+
     await seed_database(admin_session)
 
 
 @pytest.mark.integration
-async def test_database_trigger_blocks_ledger_update_and_delete(admin_session: AsyncSession) -> None:
+async def test_database_trigger_blocks_ledger_update_and_delete(
+    admin_session: AsyncSession,
+) -> None:
     """The database trigger trg_protect_ledger_events strictly blocks application-level UPDATE and DELETE."""
     # Attempting to update a ledger event must raise an exception
     with pytest.raises(DBAPIError) as exc_update:
@@ -99,10 +102,7 @@ async def test_database_trigger_blocks_ledger_update_and_delete(admin_session: A
     # Attempting to delete a ledger event must raise an exception
     with pytest.raises(DBAPIError) as exc_delete:
         await admin_session.execute(
-            text(
-                "DELETE FROM ledgerevent "
-                "WHERE organization_id = 'org_nit' AND seq = 1;"
-            )
+            text("DELETE FROM ledgerevent " "WHERE organization_id = 'org_nit' AND seq = 1;")
         )
     assert "strictly prohibited" in str(exc_delete.value).lower()
     await admin_session.rollback()

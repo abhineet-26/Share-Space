@@ -41,7 +41,6 @@ AdminSessionFactory = async_sessionmaker(
 )
 
 
-
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def setup_test_db():
     """Ensure database has seed data before running tests and reset rate limits."""

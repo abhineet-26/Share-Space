@@ -30,9 +30,15 @@ from app.services.ledger import append_ledger_event
 
 async def list_incidents(session: AsyncSession, actor: User) -> list[IncidentRead]:
     actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
-    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    is_staff = any(
+        r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles
+    )
 
-    stmt = select(Incident, Resource).join(Resource, Incident.resource_id == Resource.id).order_by(Incident.created_at.desc())
+    stmt = (
+        select(Incident, Resource)
+        .join(Resource, Incident.resource_id == Resource.id)
+        .order_by(Incident.created_at.desc())
+    )
     if not is_staff:
         stmt = stmt.where(Incident.reporter_id == actor.id)
 
@@ -49,9 +55,7 @@ async def list_incidents(session: AsyncSession, actor: User) -> list[IncidentRea
 
 async def get_incident(session: AsyncSession, actor: User, incident_id: str) -> Incident:
     stmt = (
-        select(Incident)
-        .where(Incident.id == incident_id)
-        .options(selectinload(Incident.comments))
+        select(Incident).where(Incident.id == incident_id).options(selectinload(Incident.comments))
     )
     res = await session.execute(stmt)
     incident = res.scalar_one_or_none()
@@ -62,11 +66,16 @@ async def get_incident(session: AsyncSession, actor: User, incident_id: str) -> 
         )
 
     actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
-    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    is_staff = any(
+        r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles
+    )
     if not is_staff and incident.reporter_id != actor.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "You can only view incidents you reported or are authorised to review."},
+            detail={
+                "code": "FORBIDDEN",
+                "message": "You can only view incidents you reported or are authorised to review.",
+            },
         )
 
     return incident
@@ -201,11 +210,16 @@ async def resolve_incident(
     payload: IncidentResolveRequest,
 ) -> Incident:
     actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
-    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    is_staff = any(
+        r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles
+    )
     if not is_staff:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "Only authorised staff can review and resolve incidents."},
+            detail={
+                "code": "FORBIDDEN",
+                "message": "Only authorised staff can review and resolve incidents.",
+            },
         )
 
     incident = await get_incident(session, actor, incident_id)
@@ -228,7 +242,11 @@ async def resolve_incident(
 
     await session.flush()
 
-    action_label = "INCIDENT_RESOLVED" if payload.status == IncidentStatus.RESOLVED else f"INCIDENT_{payload.status.value}"
+    action_label = (
+        "INCIDENT_RESOLVED"
+        if payload.status == IncidentStatus.RESOLVED
+        else f"INCIDENT_{payload.status.value}"
+    )
     await append_ledger_event(
         session=session,
         organization_id=actor.organization_id,

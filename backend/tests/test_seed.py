@@ -35,7 +35,15 @@ async def test_seed_repeatability(admin_session: AsyncSession) -> None:
     users = (await admin_session.execute(select(User))).scalars().all()
     assert len(users) == 7
     user_ids = {u.id for u in users}
-    assert {"usr_aarav", "usr_diya", "usr_kabir", "usr_meera", "usr_ravi", "usr_priya", "usr_rohan"}.issubset(user_ids)
+    assert {
+        "usr_aarav",
+        "usr_diya",
+        "usr_kabir",
+        "usr_meera",
+        "usr_ravi",
+        "usr_priya",
+        "usr_rohan",
+    }.issubset(user_ids)
 
     # 3. Resources
     resources = (await admin_session.execute(select(Resource))).scalars().all()

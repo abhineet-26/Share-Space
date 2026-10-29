@@ -94,10 +94,14 @@ async def reset_demo_database_endpoint() -> dict[str, str]:
     if not settings.ENABLE_DEMO_LOGIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "DEMO_DISABLED", "message": "Demo data reset is disabled in production."},
+            detail={
+                "code": "DEMO_DISABLED",
+                "message": "Demo data reset is disabled in production.",
+            },
         )
     from app.core.database import migration_session_factory
     from scripts.seed import seed_database
+
     async with migration_session_factory() as session:
         await seed_database(session)
     return {"status": "ok", "message": "Demo database successfully reset"}
@@ -133,10 +137,10 @@ async def get_me(
             )
             all_demo_users = [UserRead.model_validate(u) for u in user_res.scalars().all()]
 
-            org_res = await admin_session.execute(
-                select(Organization).order_by(Organization.id)
-            )
-            all_organizations = [OrganizationRead.model_validate(o) for o in org_res.scalars().all()]
+            org_res = await admin_session.execute(select(Organization).order_by(Organization.id))
+            all_organizations = [
+                OrganizationRead.model_validate(o) for o in org_res.scalars().all()
+            ]
     else:
         all_organizations = [OrganizationRead.model_validate(org)]
 

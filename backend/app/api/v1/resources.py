@@ -41,6 +41,7 @@ from app.schemas.asset import AssetCreate, AssetRead
 from app.schemas.booking import BookingRead, ResourceAvailabilityResponse
 from app.schemas.resource import (
     ActivePolicyItem,
+    AvailabilityWindowRead,
     PolicyRead,
     PolicyVersionRead,
     RequirementRead,
@@ -68,9 +69,16 @@ def _to_resource_read(res: Resource) -> ResourceRead:
         )
         for req in (res.requirements if hasattr(res, "requirements") and res.requirements else [])
     ]
-    availability_list = list(
-        res.availability if hasattr(res, "availability") and res.availability else []
-    )
+    availability_list = [
+        AvailabilityWindowRead(
+            id=aw.id,
+            resource_id=aw.resource_id,
+            day_of_week=aw.day_of_week,
+            start=aw.start,
+            end=aw.end,
+        )
+        for aw in (res.availability if hasattr(res, "availability") and res.availability else [])
+    ]
     return ResourceRead(
         id=res.id,
         organization_id=res.organization_id,
@@ -110,7 +118,9 @@ async def list_resources(  # noqa: PLR0913
     category: str | None = Query(None, description="Filter by resource category"),
     status_filter: str | None = Query(None, alias="status", description="Filter by status"),
     supervision: str | None = Query(None, description="Filter by supervision level"),
-    training_required: bool | None = Query(None, alias="trainingRequired", description="Filter by training required"),
+    training_required: bool | None = Query(
+        None, alias="trainingRequired", description="Filter by training required"
+    ),
 ) -> list[ResourceRead]:
     stmt = (
         select(Resource)
@@ -193,25 +203,27 @@ async def get_resource(
         raise NotFoundError("Resource", resource_id)
 
     # Fetch physical assets
-    asset_stmt = select(Asset).where(Asset.resource_id == resource_id).order_by(Asset.created_at.asc())
+    asset_stmt = (
+        select(Asset).where(Asset.resource_id == resource_id).order_by(Asset.created_at.asc())
+    )
     asset_res = await session.execute(asset_stmt)
     assets = [AssetRead.model_validate(a) for a in asset_res.scalars().all()]
 
     # Fetch waitlist count
-    waitlist_count = await session.scalar(
-        select(func.count(Booking.id)).where(
-            Booking.resource_id == resource_id,
-            Booking.status == BookingStatus.WAITLISTED,
+    waitlist_count = (
+        await session.scalar(
+            select(func.count(Booking.id)).where(
+                Booking.resource_id == resource_id,
+                Booking.status == BookingStatus.WAITLISTED,
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # Fetch active policies
-    policy_stmt = (
-        select(Policy)
-        .where(
-            Policy.organization_id == current_user.organization_id,
-            Policy.status == PolicyStatus.ACTIVE,
-        )
+    policy_stmt = select(Policy).where(
+        Policy.organization_id == current_user.organization_id,
+        Policy.status == PolicyStatus.ACTIVE,
     )
     policy_res = await session.execute(policy_stmt)
     all_active_policies = policy_res.scalars().all()
@@ -219,9 +231,7 @@ async def get_resource(
     active_policy_items: list[ActivePolicyItem] = []
     for pol in all_active_policies:
         scope_type = (
-            pol.scope_type.value
-            if hasattr(pol.scope_type, "value")
-            else str(pol.scope_type)
+            pol.scope_type.value if hasattr(pol.scope_type, "value") else str(pol.scope_type)
         )
         scope_id = pol.scope_id
         matches = (
@@ -319,7 +329,9 @@ async def create_resource(
     # Automatically provision default unit asset with unguessable QR token
     asset_id = f"ast_{ulid.new().str.lower()}"
     category_code = new_res.category.value[:2].upper()
-    asset_tag = f"{current_user.organization_id.upper()[:3]}-{category_code}-{secrets.token_hex(2).upper()}"
+    asset_tag = (
+        f"{current_user.organization_id.upper()[:3]}-{category_code}-{secrets.token_hex(2).upper()}"
+    )
     qr_token = f"qr_{current_user.organization_id}_{secrets.token_hex(8)}"
     default_asset = Asset(
         id=asset_id,
@@ -526,9 +538,7 @@ async def get_resource_availability(
     )
     result = await session.execute(stmt)
     bookings = result.scalars().all()
-    return ResourceAvailabilityResponse(
-        bookings=[BookingRead.model_validate(b) for b in bookings]
-    )
+    return ResourceAvailabilityResponse(bookings=[BookingRead.model_validate(b) for b in bookings])
 
 
 @router.get(
@@ -567,7 +577,7 @@ async def get_resource_waitlist(
             WaitlistBookingItem(
                 id=b.id,
                 user_id=b.user_id,
-                user_name=user.name if user else b.user_name,
+                user_name=user.name if user else "Unknown User",
                 resource_id=b.resource_id,
                 status=b.status.value,
                 waitlist_position=b.waitlist_position,

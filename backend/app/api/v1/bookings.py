@@ -100,7 +100,9 @@ async def get_my_bookings(
         data = BookingRead.model_validate(bkg).model_dump(by_alias=True)
         data["resourceName"] = res.name
         data["resourceLocation"] = res.location
-        data["resourceSupervision"] = res.supervision.value if hasattr(res.supervision, "value") else str(res.supervision)
+        data["resourceSupervision"] = (
+            res.supervision.value if hasattr(res.supervision, "value") else str(res.supervision)
+        )
         enriched.append(data)
     return enriched
 
@@ -128,7 +130,9 @@ async def get_all_organization_bookings(
         data = BookingRead.model_validate(bkg).model_dump(by_alias=True)
         data["resourceName"] = res.name
         data["resourceLocation"] = res.location
-        data["resourceSupervision"] = res.supervision.value if hasattr(res.supervision, "value") else str(res.supervision)
+        data["resourceSupervision"] = (
+            res.supervision.value if hasattr(res.supervision, "value") else str(res.supervision)
+        )
         data["requesterName"] = requester.name
         data["requesterEmail"] = requester.email
         data["requesterDepartment"] = requester.department or ""
@@ -156,11 +160,16 @@ async def get_booking_detail(
         )
 
     actor_roles = [r.value if hasattr(r, "value") else str(r) for r in current_user.roles]
-    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    is_staff = any(
+        r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles
+    )
     if booking.user_id != current_user.id and not is_staff:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "You do not have permission to view another user's private booking details."},
+            detail={
+                "code": "FORBIDDEN",
+                "message": "You do not have permission to view another user's private booking details.",
+            },
         )
 
     # 1. Fetch resource and requester
@@ -186,7 +195,11 @@ async def get_booking_detail(
     condition_reports = cr_res.scalars().all()
 
     # 3. Fetch incidents with comments
-    inc_stmt = select(Incident).where(Incident.booking_id == booking.id).options(selectinload(Incident.comments))
+    inc_stmt = (
+        select(Incident)
+        .where(Incident.booking_id == booking.id)
+        .options(selectinload(Incident.comments))
+    )
     inc_res = await session.execute(inc_stmt)
     incidents = inc_res.scalars().all()
 
@@ -195,7 +208,8 @@ async def get_booking_detail(
         select(LedgerEvent)
         .where(
             or_(
-                (LedgerEvent.entity_type == LedgerEntityType.BOOKING) & (LedgerEvent.entity_id == booking.id),
+                (LedgerEvent.entity_type == LedgerEntityType.BOOKING)
+                & (LedgerEvent.entity_id == booking.id),
                 LedgerEvent.event_metadata["bookingId"].astext == booking.id,
             )
         )
@@ -217,7 +231,7 @@ async def get_booking_detail(
     if attachment_ids:
         att_stmt = select(Attachment).where(Attachment.id.in_(attachment_ids))
         att_res = await session.execute(att_stmt)
-        attachments = att_res.scalars().all()
+        attachments = list(att_res.scalars().all())
 
     # 6. Fetch competing requests
     competing_stmt = (
@@ -226,12 +240,14 @@ async def get_booking_detail(
         .where(
             Booking.resource_id == booking.resource_id,
             Booking.id != booking.id,
-            Booking.status.not_in([
-                BookingStatus.CANCELLED,
-                BookingStatus.REJECTED,
-                BookingStatus.CLOSED,
-                BookingStatus.RETURNED,
-            ]),
+            Booking.status.not_in(
+                [
+                    BookingStatus.CANCELLED,
+                    BookingStatus.REJECTED,
+                    BookingStatus.CLOSED,
+                    BookingStatus.RETURNED,
+                ]
+            ),
             Booking.start_at < booking.end_at,
             Booking.end_at > booking.start_at,
         )
@@ -244,7 +260,11 @@ async def get_booking_detail(
         data = BookingRead.model_validate(b).model_dump(by_alias=True)
         data["resourceName"] = resource.name
         data["resourceLocation"] = resource.location
-        data["resourceSupervision"] = resource.supervision.value if hasattr(resource.supervision, "value") else str(resource.supervision)
+        data["resourceSupervision"] = (
+            resource.supervision.value
+            if hasattr(resource.supervision, "value")
+            else str(resource.supervision)
+        )
         data["requesterName"] = u.name
         data["requesterEmail"] = u.email
         data["requesterDepartment"] = u.department or ""
@@ -331,7 +351,9 @@ async def confirm_return(
     current_user: User = Depends(require_roles([Role.OWNER, Role.MANAGER, Role.ADMIN])),
     session: AsyncSession = Depends(get_db),
 ) -> Booking:
-    return await confirm_staff_service(session, current_user, booking_id, payload.stage, payload.notes)
+    return await confirm_staff_service(
+        session, current_user, booking_id, payload.stage, payload.notes
+    )
 
 
 @router.post(

@@ -189,11 +189,21 @@ class Organization(Base):
     )
 
     users: Mapped[list[User]] = relationship("User", back_populates="organization", lazy="selectin")
-    resources: Mapped[list[Resource]] = relationship("Resource", back_populates="organization", lazy="selectin")
-    policies: Mapped[list[Policy]] = relationship("Policy", back_populates="organization", lazy="selectin")
-    assets: Mapped[list[Asset]] = relationship("Asset", back_populates="organization", lazy="selectin")
-    bookings: Mapped[list[Booking]] = relationship("Booking", back_populates="organization", lazy="selectin")
-    ledger_events: Mapped[list[LedgerEvent]] = relationship("LedgerEvent", back_populates="organization", lazy="selectin")
+    resources: Mapped[list[Resource]] = relationship(
+        "Resource", back_populates="organization", lazy="selectin"
+    )
+    policies: Mapped[list[Policy]] = relationship(
+        "Policy", back_populates="organization", lazy="selectin"
+    )
+    assets: Mapped[list[Asset]] = relationship(
+        "Asset", back_populates="organization", lazy="selectin"
+    )
+    bookings: Mapped[list[Booking]] = relationship(
+        "Booking", back_populates="organization", lazy="selectin"
+    )
+    ledger_events: Mapped[list[LedgerEvent]] = relationship(
+        "LedgerEvent", back_populates="organization", lazy="selectin"
+    )
 
 
 class User(Base):
@@ -209,7 +219,9 @@ class User(Base):
         Enum(AcademicGroup, native_enum=False), nullable=True
     )
     verification: Mapped[VerificationStatus] = mapped_column(
-        Enum(VerificationStatus, native_enum=False), default=VerificationStatus.UNVERIFIED, nullable=False
+        Enum(VerificationStatus, native_enum=False),
+        default=VerificationStatus.UNVERIFIED,
+        nullable=False,
     )
     demo_persona_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -223,8 +235,12 @@ class User(Base):
     )
 
     organization: Mapped[Organization] = relationship("Organization", back_populates="users")
-    trainings: Mapped[list[TrainingRecord]] = relationship("TrainingRecord", back_populates="user", lazy="selectin")
-    bookings: Mapped[list[Booking]] = relationship("Booking", back_populates="user", lazy="selectin")
+    trainings: Mapped[list[TrainingRecord]] = relationship(
+        "TrainingRecord", back_populates="user", lazy="selectin"
+    )
+    bookings: Mapped[list[Booking]] = relationship(
+        "Booking", back_populates="user", lazy="selectin"
+    )
     condition_reports: Mapped[list[ConditionReport]] = relationship(
         "ConditionReport",
         primaryjoin="User.id == foreign(ConditionReport.reporter_id)",
@@ -235,7 +251,9 @@ class User(Base):
         primaryjoin="User.id == foreign(Incident.reporter_id)",
         lazy="selectin",
     )
-    notifications: Mapped[list[Notification]] = relationship("Notification", back_populates="user", lazy="selectin")
+    notifications: Mapped[list[Notification]] = relationship(
+        "Notification", back_populates="user", lazy="selectin"
+    )
 
 
 class TrainingRecord(Base):
@@ -294,7 +312,10 @@ class Resource(Base):
         Enum(ConditionLevel, native_enum=False), nullable=False
     )
     status: Mapped[ResourceStatus] = mapped_column(
-        Enum(ResourceStatus, native_enum=False), default=ResourceStatus.DRAFT, nullable=False, index=True
+        Enum(ResourceStatus, native_enum=False),
+        default=ResourceStatus.DRAFT,
+        nullable=False,
+        index=True,
     )
     supervision: Mapped[SupervisionLevel] = mapped_column(
         Enum(SupervisionLevel, native_enum=False), default=SupervisionLevel.NONE, nullable=False
@@ -316,10 +337,22 @@ class Resource(Base):
 
     organization: Mapped[Organization] = relationship("Organization", back_populates="resources")
     owner: Mapped[User] = relationship("User", foreign_keys=[owner_id])
-    requirements: Mapped[list[ResourceRequirement]] = relationship("ResourceRequirement", back_populates="resource", lazy="selectin", cascade="all, delete-orphan")
-    availability: Mapped[list[AvailabilityWindow]] = relationship("AvailabilityWindow", back_populates="resource", lazy="selectin", cascade="all, delete-orphan")
+    requirements: Mapped[list[ResourceRequirement]] = relationship(
+        "ResourceRequirement",
+        back_populates="resource",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
+    availability: Mapped[list[AvailabilityWindow]] = relationship(
+        "AvailabilityWindow",
+        back_populates="resource",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
     assets: Mapped[list[Asset]] = relationship("Asset", back_populates="resource", lazy="selectin")
-    bookings: Mapped[list[Booking]] = relationship("Booking", back_populates="resource", lazy="selectin")
+    bookings: Mapped[list[Booking]] = relationship(
+        "Booking", back_populates="resource", lazy="selectin"
+    )
 
 
 class ResourceRequirement(Base):
@@ -328,7 +361,9 @@ class ResourceRequirement(Base):
         ForeignKey("resource.id", ondelete="CASCADE"), nullable=False, index=True
     )
     key: Mapped[str] = mapped_column(String(100), nullable=False)
-    type: Mapped[RequirementType] = mapped_column(Enum(RequirementType, native_enum=False), nullable=False)
+    type: Mapped[RequirementType] = mapped_column(
+        Enum(RequirementType, native_enum=False), nullable=False
+    )
     label: Mapped[str] = mapped_column(String(255), nullable=False)
     value: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -337,9 +372,7 @@ class ResourceRequirement(Base):
 
     resource: Mapped[Resource] = relationship("Resource", back_populates="requirements")
 
-    __table_args__ = (
-        UniqueConstraint("resource_id", "key", name="uq_resource_requirement_key"),
-    )
+    __table_args__ = (UniqueConstraint("resource_id", "key", name="uq_resource_requirement_key"),)
 
 
 class AvailabilityWindow(Base):
@@ -375,7 +408,9 @@ class Asset(Base):
     status: Mapped[AssetStatus] = mapped_column(
         Enum(AssetStatus, native_enum=False), default=AssetStatus.AVAILABLE, nullable=False
     )
-    last_calibrated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_calibrated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
@@ -422,11 +457,11 @@ class Policy(Base):
     )
 
     organization: Mapped[Organization] = relationship("Organization", back_populates="policies")
-    versions: Mapped[list[PolicyVersion]] = relationship("PolicyVersion", back_populates="policy", lazy="selectin", cascade="all, delete-orphan")
-
-    __table_args__ = (
-        Index("ix_policy_scope", "scope_type", "scope_id"),
+    versions: Mapped[list[PolicyVersion]] = relationship(
+        "PolicyVersion", back_populates="policy", lazy="selectin", cascade="all, delete-orphan"
     )
+
+    __table_args__ = (Index("ix_policy_scope", "scope_type", "scope_id"),)
 
 
 class PolicyVersion(Base):
@@ -450,9 +485,7 @@ class PolicyVersion(Base):
     organization: Mapped[Organization] = relationship("Organization")
     policy: Mapped[Policy] = relationship("Policy", back_populates="versions")
 
-    __table_args__ = (
-        UniqueConstraint("policy_id", "version", name="uq_policy_version"),
-    )
+    __table_args__ = (UniqueConstraint("policy_id", "version", name="uq_policy_version"),)
 
 
 class Booking(Base):
@@ -472,11 +505,16 @@ class Booking(Base):
     project_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
     team_members: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     status: Mapped[BookingStatus] = mapped_column(
-        Enum(BookingStatus, native_enum=False), default=BookingStatus.REQUESTED, nullable=False, index=True
+        Enum(BookingStatus, native_enum=False),
+        default=BookingStatus.REQUESTED,
+        nullable=False,
+        index=True,
     )
     idempotency_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     policy_version_ids: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
-    eligibility_checks: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
+    eligibility_checks: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, nullable=False
+    )
     waitlist_position: Mapped[int | None] = mapped_column(nullable=True)
     waitlist_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     priority_factors: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
@@ -485,9 +523,13 @@ class Booking(Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_policy_override: Mapped[bool] = mapped_column(default=False, nullable=False)
     handover_confirmed_by: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    handover_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    handover_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     return_confirmed_by: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    return_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    return_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
@@ -501,8 +543,12 @@ class Booking(Base):
     organization: Mapped[Organization] = relationship("Organization", back_populates="bookings")
     resource: Mapped[Resource] = relationship("Resource", back_populates="bookings")
     user: Mapped[User] = relationship("User", back_populates="bookings")
-    condition_reports: Mapped[list[ConditionReport]] = relationship("ConditionReport", back_populates="booking", lazy="selectin")
-    incidents: Mapped[list[Incident]] = relationship("Incident", back_populates="booking", lazy="selectin")
+    condition_reports: Mapped[list[ConditionReport]] = relationship(
+        "ConditionReport", back_populates="booking", lazy="selectin"
+    )
+    incidents: Mapped[list[Incident]] = relationship(
+        "Incident", back_populates="booking", lazy="selectin"
+    )
 
     __table_args__ = (
         UniqueConstraint("user_id", "idempotency_key", name="uq_booking_idempotency"),
@@ -531,7 +577,9 @@ class ConditionReport(Base):
     reporter_name: Mapped[str] = mapped_column(String(255), nullable=False)
     actual_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     staff_confirmed_by: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    staff_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    staff_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
@@ -586,7 +634,9 @@ class Incident(Base):
     organization: Mapped[Organization] = relationship("Organization")
     booking: Mapped[Booking] = relationship("Booking", back_populates="incidents")
     resource: Mapped[Resource] = relationship("Resource")
-    comments: Mapped[list[IncidentComment]] = relationship("IncidentComment", back_populates="incident", lazy="selectin", cascade="all, delete-orphan")
+    comments: Mapped[list[IncidentComment]] = relationship(
+        "IncidentComment", back_populates="incident", lazy="selectin", cascade="all, delete-orphan"
+    )
 
 
 class IncidentComment(Base):
@@ -647,7 +697,9 @@ class LedgerEvent(Base):
     prev_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     hash: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    organization: Mapped[Organization] = relationship("Organization", back_populates="ledger_events")
+    organization: Mapped[Organization] = relationship(
+        "Organization", back_populates="ledger_events"
+    )
 
     __table_args__ = (
         UniqueConstraint("organization_id", "seq", name="uq_ledger_seq_per_org"),
@@ -701,6 +753,4 @@ class OutboxEvent(Base):
 
     organization: Mapped[Organization] = relationship("Organization")
 
-    __table_args__ = (
-        Index("ix_outbox_status_next_retry", "status", "next_retry_at"),
-    )
+    __table_args__ = (Index("ix_outbox_status_next_retry", "status", "next_retry_at"),)

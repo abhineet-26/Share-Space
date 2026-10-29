@@ -5,13 +5,14 @@ Revises: 103c1705e0dc
 Create Date: 2026-10-29 20:46:40.349011
 
 """
+
 from collections.abc import Sequence
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '7663cc40d80a'
-down_revision: str | None = '103c1705e0dc'
+revision: str = "7663cc40d80a"
+down_revision: str | None = "103c1705e0dc"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -35,7 +36,7 @@ TENANT_TABLES = [
 
 def upgrade() -> None:
     bind = op.get_bind()
-    if bind.dialect.name != 'postgresql':
+    if bind.dialect.name != "postgresql":
         return
 
     # 1. Enable btree_gist extension for PostgreSQL exclusion constraint
@@ -184,7 +185,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     bind = op.get_bind()
-    if bind.dialect.name != 'postgresql':
+    if bind.dialect.name != "postgresql":
         return
 
     op.execute("DROP TRIGGER IF EXISTS trg_protect_ledger_events ON ledgerevent;")
@@ -207,5 +208,7 @@ def downgrade() -> None:
     op.execute("DROP POLICY IF EXISTS incidentcomment_tenant_isolation ON incidentcomment;")
     op.execute("ALTER TABLE incidentcomment DISABLE ROW LEVEL SECURITY;")
 
-    op.execute("ALTER TABLE booking DROP CONSTRAINT IF EXISTS exclude_overlapping_confirmed_bookings;")
+    op.execute(
+        "ALTER TABLE booking DROP CONSTRAINT IF EXISTS exclude_overlapping_confirmed_bookings;"
+    )
     op.execute("ALTER TABLE booking DROP CONSTRAINT IF EXISTS check_booking_time_range;")
