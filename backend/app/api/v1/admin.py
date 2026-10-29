@@ -8,8 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import require_roles
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError, ReasonRequiredError
-from app.models import LedgerEntityType, Role, User
-from app.schemas.auth import UpdateUserRolesRequest, UserRead
+from app.models import LedgerEntityType, Organization, Role, TrainingRecord, User
+from app.schemas.analytics import AdminUsersResponse, TrainingRecordRead
+from app.schemas.auth import OrganizationRead, UpdateUserRolesRequest, UserRead
 from app.services.ledger import append_ledger_event
 
 MIN_REASON_LENGTH = 5
@@ -78,3 +79,55 @@ async def update_user_roles(
 
     await session.flush()
     return UserRead.model_validate(target_user)
+
+
+@router.get(
+    "/users",
+    response_model=AdminUsersResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get organisation user directory with training records",
+)
+async def get_admin_directory(
+    current_user: Annotated[
+        User,
+        Depends(require_roles([Role.ADMIN, Role.MANAGER, Role.OWNER], "View organisation user directory")),
+    ],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminUsersResponse:
+    from sqlalchemy import select
+
+    # Fetch users in organization
+    u_stmt = select(User).where(User.organization_id == current_user.organization_id)
+    u_res = await session.execute(u_stmt)
+    users = list(u_res.scalars().all())
+
+    # Fetch training records in organization
+    t_stmt = select(TrainingRecord).where(TrainingRecord.organization_id == current_user.organization_id)
+    t_res = await session.execute(t_stmt)
+    trainings = list(t_res.scalars().all())
+
+    # Fetch organization
+    org = await session.get(Organization, current_user.organization_id)
+    if not org:
+        raise NotFoundError("Organization", current_user.organization_id)
+
+    training_reads = [
+        TrainingRecordRead(
+            id=t.id,
+            organization_id=t.organization_id,
+            user_id=t.user_id,
+            type=t.type,
+            label=t.label,
+            status=t.status.value if hasattr(t.status, "value") else str(t.status),
+            source=t.source,
+            verified_by=t.verified_by,
+            expires_at=t.expires_at.isoformat() if t.expires_at else None,
+        )
+        for t in trainings
+    ]
+
+    return AdminUsersResponse(
+        users=[UserRead.model_validate(u) for u in users],
+        trainings=training_reads,
+        organization=OrganizationRead.model_validate(org),
+    )
