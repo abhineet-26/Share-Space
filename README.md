@@ -1,208 +1,306 @@
-# SHARESPACE
+# 🌐 SHARESPACE
 
-### Access more. Waste less. Build together.
+<div align="center">
 
-**A resource-sharing platform built around accountability, fair access, and responsible use of institutional assets.**
+### **Access more. Waste less. Build together.**
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Frontend-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+**A smarter way to share institutional resources — with accountability built into every step.**
 
-SHARESPACE is a multi-tenant platform for managing shared equipment, laboratories, research facilities, and other institutional resources. It brings the entire process into one place: discovering a resource, checking eligibility, requesting a booking, getting an authorised decision, recording handover and return conditions, and maintaining a traceable history of what happened.
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Frontend-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 
-The idea is straightforward: **sharing a resource should be easy to manage, but access and responsibility should never be left ambiguous.**
+*One platform. Shared resources. Clear rules. A traceable history.*
 
-The project is being developed as a professional product, with its initial implementation focused on campus laboratories, makerspaces, and technical facilities.
+</div>
 
 ---
 
-## Contents
+## 💡 What is SHARESPACE?
 
-- [The problem](#the-problem)
-- [What SHARESPACE does](#what-sharespace-does)
-- [How the workflow works](#how-the-workflow-works)
-- [What makes it different](#what-makes-it-different)
-- [Architecture](#architecture)
-- [Technology stack](#technology-stack)
-- [Run locally](#run-locally)
-- [Configuration](#configuration)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Project status](#project-status)
+Think about a college laboratory with expensive equipment, multiple students who need access, safety requirements to check, and a lab manager who needs to keep track of everything.
 
-## The problem
+Now imagine managing the entire process without scattered spreadsheets, confusing messages, or uncertainty about who used what.
 
-Institutions often have equipment and spaces that are expensive to purchase, maintain, or replace, yet difficult to share efficiently.
+**That's what SHARESPACE is built for.**
 
-A laboratory instrument might sit unused while another student needs it. A resource may have overlapping requests, specific safety-training requirements, or a supervised handover process. When these workflows are handled through spreadsheets, messages, and informal approvals, it becomes difficult to answer basic questions:
+SHARESPACE is a multi-tenant resource-sharing and accountability platform for college laboratories, research facilities, makerspaces, and other institutional spaces. It brings resource discovery, eligibility checks, booking requests, staff approvals, equipment handovers, return inspections, incident reporting, and audit history into one connected workflow.
 
-- Who is eligible to use this resource?
-- Why was a request approved, rejected, or waitlisted?
-- Was the equipment in good condition before and after use?
-- Who reviewed an incident, and what was the outcome?
-- Can one department access another department's records?
-- Can the history of an important decision be checked later?
+The goal isn't just to make booking easier. It's to make shared resources **easier to access, safer to manage, and more accountable to everyone involved.**
 
-SHARESPACE addresses these problems by connecting resource discovery, policy-based eligibility, booking, operational records, and accountability in a single workflow.
+## 🎯 The problem we're solving
 
-## What SHARESPACE does
+<div align="center">
 
-### Resource discovery and eligibility
+| 😓 Without a connected workflow | ✅ With SHARESPACE |
+|---|---|
+| Scattered booking requests | Centralised resource discovery and booking |
+| Unclear eligibility requirements | Explainable eligibility checks |
+| Conflicting reservations | Database-backed overlap prevention |
+| Informal approvals without context | Authorised decisions with recorded reasons |
+| Unclear equipment condition at handover | Structured condition and return records |
+| Incidents without a consistent review trail | Documented, human-reviewed resolution |
+| Limited visibility into past actions | A verifiable, hash-chained audit ledger |
 
-Browse institutional resources, inspect specifications and availability, and understand the requirements attached to each resource.
+</div>
 
-The eligibility engine evaluates eight checks covering account verification, institutional membership, operational status, verified training, requested time window, scheduling conflicts, session-duration limits, and rolling usage limits. It returns reasons and next steps rather than treating every failed request as an unexplained rejection.
+A shared resource should not become an administrative headache. SHARESPACE connects the process from the first booking request to the final return.
 
-### Booking and fair allocation
+---
 
-Manage requests through an explicit booking lifecycle, with authorised staff decisions, required decision reasons, and waitlist handling.
+## ✨ What can you do with it?
 
-Booking creation supports idempotency, while PostgreSQL exclusion constraints help prevent overlapping confirmed bookings for the same resource. Allocation rules can account for published priority factors, usage limits, and request time.
+<table>
+<tr>
+<td width="50%" valign="top">
 
-### Handover, returns, and condition records
+### 🔎 Discover & Check Eligibility
 
-Record the state of an asset at handover and return, including relevant checklists, acknowledgement of usage rules, and condition evidence.
+Browse resources, review specifications, and understand access requirements before booking.
 
-Supervised resources can require staff confirmation before a booking is closed. Physical asset records and QR tokens support identification and contextual lookup; scanning a QR code does not grant access by itself.
+The eligibility engine checks eight areas, including institutional membership, verified training, operational status, scheduling conflicts, and usage limits.
 
-### Incident reporting and human review
+</td>
+<td width="50%" valign="top">
 
-Record incidents against a booking or resource, attach relevant evidence, and keep the discussion and resolution history together.
+### 📅 Book & Allocate Fairly
 
-An incident report is treated as an allegation until reviewed by authorised staff. **SHARESPACE does not automatically assign financial penalties or academic grade deductions.** Decisions that affect responsibility remain subject to human review.
+Submit booking requests, receive authorised decisions, and track waitlist positions.
 
-### Trust Ledger and audit verification
+Idempotent booking requests and database-level exclusion constraints help prevent duplicate operations and overlapping confirmed reservations.
 
-Important actions are written to a chronological audit ledger linked through SHA-256 hashes. The chain can be checked to detect inconsistencies or tampering with recorded events.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
 
-The ledger is described as **tamper-evident**, not as an immutable blockchain. Its purpose is to make changes to the recorded history detectable and to give authorised users a way to verify that history.
+### 🧰 Manage Handover & Returns
 
-### Institutional administration
+Record asset condition, required accessories, rule acknowledgements, and return inspections.
 
-The platform also includes:
+Supervised resources can require staff confirmation before the booking is closed.
 
-- Versioned policies and policy activation with recorded reasons.
-- Role-based access for users, resource owners, managers, and administrators.
-- Organisation-scoped data isolation using PostgreSQL Row-Level Security (RLS).
-- In-app notifications and an event outbox for handling side effects.
-- Resource-utilisation analytics and CSV export.
-- An optional assistive AI integration with deterministic fallbacks.
+</td>
+<td width="50%" valign="top">
 
-## How the workflow works
+### 🛡️ Keep a Trust Ledger
 
-The main workflow follows a resource from discovery to closure.
+Important actions are recorded in a chronological, SHA-256 hash-chained audit ledger.
+
+The ledger can be verified to detect inconsistencies or tampering with recorded events.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 🧑‍⚖️ Review Incidents Responsibly
+
+Report incidents with supporting details and evidence, discuss findings, and document a resolution.
+
+An allegation is not automatically treated as proof of fault.
+
+</td>
+<td width="50%" valign="top">
+
+### 📊 Understand Resource Usage
+
+Review resource-utilisation information, access operational analytics, and export reports as CSV files.
+
+Institutional administrators can manage roles, policies, and oversight.
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🔄 How SHARESPACE works
+
+A booking is only one part of the process. Here's how the complete lifecycle fits together.
 
 ```mermaid
 flowchart TD
-    A["Discover a resource"] --> B["Check eligibility and requirements"]
-    B --> C["Submit booking request"]
-    C --> D{"Eligible and available?"}
-    D -- "No allocation" --> E["Explain result or join waitlist"]
-    D -- "Request review" --> F["Authorised staff decision"]
+    A["🔎 Discover resource"] --> B["✅ Check eligibility"]
+    B --> C["📅 Submit booking request"]
+    C --> D{"Available and eligible?"}
+
+    D -- "No suitable slot" --> E["🕒 Waitlist or explain result"]
+    D -- "Requires review" --> F["👤 Staff reviews request"]
+
     F --> G{"Decision"}
-    G -- "Rejected" --> H["Record reason and notify"]
-    G -- "Approved" --> I["Check-in and condition record"]
-    I --> J["Resource is used"]
-    J --> K["Return inspection"]
+    G -- "Rejected" --> H["📝 Record reason"]
+    G -- "Approved" --> I["🧰 Check-in and condition record"]
+
+    I --> J["⚙️ Resource in use"]
+    J --> K["🔍 Return inspection"]
     K --> L{"Incident reported?"}
-    L -- "Yes" --> M["Human investigation and resolution"]
-    L -- "No" --> N["Complete return"]
+
+    L -- "Yes" --> M["🧑‍⚖️ Human review and resolution"]
+    L -- "No" --> N["✅ Complete return"]
     M --> N
-    H --> O["Traceable audit history"]
+
+    N --> O["🔐 Traceable audit history"]
+    H --> O
     E --> O
-    N --> O
-    F -. "Record decision" .-> O
+
+    classDef start fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef decision fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef end fill:#dcfce7,stroke:#16a34a,color:#14532d
+
+    class A,I,J start
+    class D,G,L decision
+    class N,O end
 ```
 
-The backend is responsible for validating permissions, eligibility, state transitions, and data access. The frontend presents the workflow, but it is not the authority for deciding whether an action is allowed.
+### The important part
 
-## What makes it different
+The backend decides whether an action is permitted. Eligibility, tenant boundaries, booking transitions, and staff permissions are not left to frontend checks alone.
 
-SHARESPACE is not intended to be just a calendar with a booking button.
+That distinction matters when multiple users are competing for the same resource or when an action needs an auditable explanation.
 
-| Design decision | Why it matters |
-|---|---|
-| Policy-driven eligibility | Users receive a clear explanation of requirements and failed checks. |
-| Database-backed conflict prevention | Concurrent requests cannot simply bypass scheduling rules because they arrive at the same time. |
-| Multi-tenant isolation | Organisation boundaries are enforced through PostgreSQL RLS, rather than relying only on frontend filters. |
-| Recorded governance reasons | Important staff decisions and policy changes have an explanation attached. |
-| Condition and incident history | Handover, return, and incident records provide context beyond the booking status. |
-| Human-reviewed incidents | Reports do not automatically become findings of fault or penalties. |
-| Hash-chained Trust Ledger | Recorded event history can be verified for tampering or inconsistencies. |
-| Assistive, optional AI | AI can help structure input, but it does not make final access, safety, liability, or penalty decisions. |
+---
 
-These choices are intended to make resource sharing easier to administer without removing the controls institutions need to operate safely.
+## 🏗️ Under the hood
 
-## Architecture
-
-SHARESPACE uses a modular application architecture with a React frontend, a FastAPI service, and PostgreSQL as the system of record.
+SHARESPACE uses a frontend, a REST API, and PostgreSQL as the system of record.
 
 ```mermaid
 flowchart TB
-    U["Students, resource owners, managers and administrators"]
-    FE["React 19 + TypeScript + Vite"]
-    API["FastAPI REST API"]
-    AUTH["Authentication and role permissions"]
-    DOMAIN["Policies, eligibility and booking lifecycle"]
-    OPS["Condition records, incidents and notifications"]
-    LEDGER["SHA-256 hash-chained Trust Ledger"]
-    DB[("PostgreSQL")]
-    RLS["Row-Level Security"]
-    CONSTRAINTS["Constraints and transaction controls"]
+    USERS["👥 Students · Owners · Managers · Admins"]
 
-    U --> FE
-    FE -->|"HTTP /api/v1"| API
-    API --> AUTH
-    API --> DOMAIN
-    API --> OPS
+    subgraph CLIENT["🖥️ Frontend"]
+        REACT["React 19"]
+        TS["TypeScript + Vite"]
+        UI["Tailwind CSS"]
+        REACT --- TS
+        REACT --- UI
+    end
+
+    subgraph SERVER["⚙️ Backend · FastAPI"]
+        API["REST API · /api/v1"]
+        AUTH["Authentication and role permissions"]
+        RULES["Policy and eligibility engine"]
+        BOOK["Booking lifecycle and allocation"]
+        AUDIT["Trust Ledger and audit verification"]
+        API --> AUTH
+        API --> RULES
+        API --> BOOK
+        API --> AUDIT
+    end
+
+    subgraph DATA["🗄️ PostgreSQL"]
+        DB[("Application data")]
+        RLS["Row-Level Security"]
+        EXT["btree_gist exclusion constraints"]
+        DB --- RLS
+        DB --- EXT
+    end
+
+    USERS --> CLIENT
+    CLIENT -->|"HTTP requests"| API
     AUTH --> DB
-    DOMAIN --> DB
-    OPS --> DB
-    API --> LEDGER
-    LEDGER --> DB
-    DB --- RLS
-    DB --- CONSTRAINTS
+    RULES --> DB
+    BOOK --> DB
+    AUDIT --> DB
 ```
 
-### Backend
+### 🧱 Technology stack
 
-The backend exposes the REST API and enforces application rules. It uses FastAPI, SQLAlchemy, and Alembic, with asynchronous PostgreSQL access through `asyncpg`.
-
-### Database
-
-PostgreSQL stores organisations, users, resources, policies, bookings, condition reports, incidents, notifications, and audit events.
-
-Row-Level Security is used to enforce organisation boundaries. The `btree_gist` extension supports database-level exclusion constraints for overlapping bookings.
-
-### Frontend
-
-The frontend is built with React, TypeScript, Vite, and Tailwind CSS. The API integration supports both a local mock mode and a live backend mode, configured through environment variables.
-
-### Assistive AI
-
-AI integration is optional. Deterministic parsing and fallback logic support core workflows when an AI provider is unavailable. Final access decisions, safety checks, incident findings, and penalties remain outside the AI's authority.
-
-## Technology stack
-
-| Area | Technologies |
+| Layer | Technologies |
 |---|---|
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS |
-| Backend | Python 3.11+, FastAPI, Uvicorn |
-| Database | PostgreSQL, SQLAlchemy, Alembic |
-| Database controls | Row-Level Security, `btree_gist`, transaction-level tenant context |
-| Authentication and access | Session/JWT-based authentication, role-based permissions |
-| Audit history | SHA-256 hash chaining and ledger verification |
-| Testing and quality | Pytest, pytest-asyncio, Ruff, TypeScript checks |
-| Packaging and deployment | Docker, Docker Compose, managed application hosting |
-| Optional AI | Google Gemini integration with deterministic fallback logic |
+| Frontend | React 19, TypeScript, Vite |
+| Styling | Tailwind CSS |
+| Backend API | Python, FastAPI, Uvicorn |
+| Database | PostgreSQL |
+| ORM & migrations | SQLAlchemy, Alembic |
+| Async database driver | `asyncpg` |
+| Security | Role-based permissions, PostgreSQL RLS, CORS, security headers, rate limiting |
+| Audit integrity | SHA-256 hash chaining |
+| Testing | Pytest, pytest-asyncio, Ruff, TypeScript checks |
+| Packaging | Docker, Docker Compose |
+| Optional AI | Google Gemini with deterministic fallback logic |
 
-## Run locally
+---
 
-Docker Compose is the recommended starting point because it brings up the frontend, backend, and database together.
+## 🔐 Engineering decisions that matter
 
-### Prerequisites
+SHARESPACE is designed around a few rules that should remain true as the project grows.
+
+<details>
+<summary><strong>🏢 1. Multi-tenant isolation</strong></summary>
+
+Different institutions must not be able to access one another's records simply by changing an identifier in a request.
+
+PostgreSQL Row-Level Security (RLS) provides a database-level layer of tenant isolation. The application also applies backend permission checks and transaction-scoped tenant context.
+
+</details>
+
+<details>
+<summary><strong>📏 2. Rules are enforced by the backend</strong></summary>
+
+The frontend helps users understand what they can do, but it is not the source of truth for access permissions, eligibility, or booking transitions.
+
+The server evaluates the relevant rules and validates state changes.
+
+</details>
+
+<details>
+<summary><strong>⚡ 3. Concurrent bookings need database protection</strong></summary>
+
+Application-level availability checks alone are not enough when two requests arrive close together.
+
+Idempotency and PostgreSQL exclusion constraints provide additional protection against duplicate operations and overlapping confirmed bookings.
+
+</details>
+
+<details>
+<summary><strong>🔗 4. A Trust Ledger that can be checked</strong></summary>
+
+Ledger events are linked using SHA-256 hashes. Verification checks the recorded chain for inconsistencies and broken links.
+
+The correct term is **tamper-evident**. Hash chaining helps detect changes; it does not mean that tampering is physically impossible or that the ledger is a blockchain.
+
+</details>
+
+<details>
+<summary><strong>🧑‍⚖️ 5. Accountability without automated blame</strong></summary>
+
+Incident reports remain allegations until reviewed by authorised people. The system records the review and resolution rather than automatically assigning financial or academic penalties.
+
+</details>
+
+<details>
+<summary><strong>🧠 6. AI is optional, not a gatekeeper</strong></summary>
+
+AI can assist with selected tasks such as interpreting natural-language queries or structuring incident drafts.
+
+Core booking workflows have deterministic logic and fallback paths. AI does not make final access, safety, liability, or penalty decisions.
+
+</details>
+
+---
+
+## 👥 Who is it for?
+
+| Role | What they can do |
+|---|---|
+| 🎓 **Student / User** | Discover resources, check eligibility, request bookings, manage bookings, and report issues. |
+| 🧰 **Resource Owner** | Manage resources within their authorised scope. |
+| 👨‍🔧 **Lab Manager** | Review requests, manage supervised handovers and returns, and review incidents. |
+| 🛡️ **Administrator** | Manage roles and policies and oversee audit history. |
+
+Permissions are enforced by the backend and scoped to the relevant organisation.
+
+---
+
+## 🚀 Run SHARESPACE locally
+
+Want to explore the project or work on it? Docker Compose is the easiest way to start the full development stack.
+
+### Requirements
 
 - Git
 - Docker Engine
@@ -215,130 +313,130 @@ git clone https://github.com/abhineet-26/Share-Space.git
 cd Share-Space
 ```
 
-### 2. Start the application
+### 2. Start the stack
 
 ```bash
 docker compose up --build
 ```
 
-The local development stack exposes the following services:
+### 3. Open the services
 
-| Service | URL |
+| Service | Local address |
 |---|---|
-| Frontend | http://localhost:3000 |
-| Backend health check | http://localhost:8000/healthz |
-| Backend readiness check | http://localhost:8000/readyz |
-| Interactive API documentation | http://localhost:8000/docs |
+| 🖥️ Frontend | [localhost:3000](http://localhost:3000) |
+| 💚 Backend health check | [localhost:8000/healthz](http://localhost:8000/healthz) |
+| 🩺 Backend readiness check | [localhost:8000/readyz](http://localhost:8000/readyz) |
+| 📘 API documentation | [localhost:8000/docs](http://localhost:8000/docs) |
 
-The API is mounted under `/api/v1`.
+The development stack is configured separately from production. Use unique secrets and suitable database permissions for any publicly deployed environment.
 
-> **Local development only:** Docker Compose uses development configuration and credentials intended for a local environment. Do not reuse them for a public deployment. Do not run demo seed/reset operations against a database containing real institutional data.
-
-To stop the services:
+To stop the local services:
 
 ```bash
 docker compose down
 ```
 
-To remove the local database volume as well, use `docker compose down -v`. This permanently deletes the local database data, so use it only when that is intended.
+> ⚠️ `docker compose down -v` also removes the local database volume and its data. Use it only when you intentionally want to reset the local database.
 
-## Configuration
+For configuration details and alternative deployment methods, see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
-Configuration depends on whether the application is running locally or against a deployed backend.
+---
 
-### Frontend
+## 🧪 Testing & verification
 
-The frontend reads these environment variables:
+The repository includes tests for the backend's domain rules and core flows, including:
 
-| Variable | Purpose |
-|---|---|
-| `VITE_API_MODE` | Set to `live` to use the backend API; mock mode is the default otherwise. |
-| `VITE_API_BASE_URL` | Base URL of the backend, without the `/api/v1` suffix. |
-| `VITE_ENABLE_AI` | Controls the frontend AI feature flag where supported. |
+- 🔒 Tenant isolation and authentication permissions
+- 📅 Booking lifecycle, concurrency, and waitlist handling
+- 🧰 Condition reports and incident resolution
+- 🔗 Trust Ledger integrity verification
+- 📊 Notifications and analytics
+- 🛡️ Security headers and rate limiting
 
-For local development against the Docker backend, the live API base URL is `http://localhost:8000`.
-
-For a deployed frontend, set the base URL to the backend service origin, for example `https://your-backend.onrender.com`. The frontend appends `/api/v1` to API requests.
-
-### Backend
-
-Important backend configuration includes:
-
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | Async database URL used by the application. |
-| `DATABASE_MIGRATION_URL` | Async database URL used by migration operations. |
-| `SYNC_DATABASE_URL` | Sync PostgreSQL URL used by Alembic configuration. |
-| `SECRET_KEY` | Secret used for authentication-related signing. |
-| `ENVIRONMENT` | Runtime environment, such as `development` or `production`. |
-| `DEBUG` | Controls development behavior, including interactive API documentation. |
-| `CORS_ORIGINS` | Comma-separated list of permitted frontend origins. |
-| `ENABLE_DEMO_LOGIN` | Enables the demo login flow when explicitly configured. |
-
-Use strong, unique secrets in deployed environments. Keep database credentials and API keys out of Git, frontend variables, logs, and public documentation.
-
-For complete deployment configuration, see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
-
-## Testing
-
-The repository includes backend integration tests for core booking flows, access permissions, tenant isolation, ledger integrity, notifications, and related features.
-
-From the repository root, install the backend with development dependencies:
+### Run backend tests
 
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-```
-
-Run backend tests:
-
-```bash
 pytest tests/ -v
 ```
 
-Run lint checks:
+### Run lint checks
 
 ```bash
 ruff check .
 ```
 
-From the repository root, install frontend dependencies and build the application:
+### Build the frontend
+
+Run from the repository root:
 
 ```bash
 npm install
 npm run build
 ```
 
-Integration tests may require a correctly configured test database. Use a disposable local or test database, never the production database. Check the test output and current CI results rather than assuming a previous pass guarantees that the current commit still passes.
+Integration tests may require a configured test database. Use a disposable development or test database rather than production data.
 
-For a guided end-to-end product walkthrough, see [`docs/TESTING.md`](docs/TESTING.md).
-
-## Deployment
-
-The application has separate frontend and backend components, so they can be deployed independently or together with Docker Compose.
-
-For a managed deployment, configure:
-
-1. A PostgreSQL database with the required extension and permissions.
-2. A backend web service with database URLs, a strong secret key, production settings, and the correct CORS origins.
-3. A static frontend build with live API mode and the backend base URL.
-4. Database migrations as a deliberate deployment step before testing the application.
-5. A safe strategy for demo data, backups, logs, and ongoing operational checks.
-
-The backend provides `/healthz` for a health check and `/readyz` for a readiness check that also tests database connectivity. A successful readiness response confirms connectivity; it does not by itself confirm that every database migration has been applied.
-
-See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the deployment guide and [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) for the implementation audit.
-
-## Project status
-
-SHARESPACE is at the **v0.1.0 MVP stage**. The implementation covers the core resource-sharing lifecycle and its supporting accountability controls. Deployment configuration and environment-specific verification remain important parts of getting the full application running reliably.
-
-The current priority is to keep the core workflow consistent from end to end: a resource can be discovered, a request can be evaluated and decided, handover and return can be recorded, incidents can be reviewed, and the relevant history can be checked.
-
-The platform is designed to grow beyond a single campus into a system that multiple institutions can operate with clearly separated data and configurable policies.
+📖 For the guided product walkthrough, see [`docs/TESTING.md`](docs/TESTING.md).
 
 ---
 
-**SHARESPACE — Access more. Waste less. Build together.**
+## ☁️ Deployment
+
+SHARESPACE has a separate frontend and backend, so each component can be deployed independently or run together with Docker Compose.
+
+A managed deployment needs:
+
+- 🗄️ PostgreSQL with the required extension, permissions, and applied migrations.
+- ⚙️ A backend service with production configuration and securely managed secrets.
+- 🖥️ A frontend build configured to use the live API.
+- 🌐 Correct CORS origins for the deployed frontend.
+- 🩺 Health and readiness checks, plus an appropriate backup and operational plan.
+
+A successful `/readyz` response confirms that the database is reachable. It does **not**, by itself, prove that every migration has been applied or that every product feature works end to end.
+
+For the full deployment guide, see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+---
+
+## 📍 Project status
+
+**Current milestone: v0.1.0 MVP**
+
+The implementation covers the core resource-sharing lifecycle and supporting accountability controls. Environment-specific deployment and end-to-end verification remain part of getting the complete application running reliably.
+
+The next goal is to ensure the deployed experience works as consistently as the intended workflow — from discovering a resource and requesting a booking to returning the asset and checking the resulting audit history.
+
+For implementation details and the functional requirements audit, see [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
+
+---
+
+## 🗺️ What's next?
+
+SHARESPACE is intended to grow beyond a single campus. Potential future work includes:
+
+- 📱 Better asset identification and evidence workflows
+- 🔑 Institutional sign-in through OIDC
+- 📆 Calendar integrations and maintenance windows
+- 🔔 More notification delivery options
+- 🔌 APIs and webhooks for institutional systems
+- 🏫 Easier onboarding for multiple organisations
+
+These are roadmap directions, not promises that every feature is already available.
+
+---
+
+<div align="center">
+
+### 🤝 Built around a simple idea
+
+**Shared resources work better when access is clear and responsibility is traceable.**
+
+Thanks for checking out SHARESPACE.
+
+*Access more. Waste less. Build together.*
+
+</div>
