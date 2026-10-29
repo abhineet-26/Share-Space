@@ -125,10 +125,10 @@
 ### FR-14: Multi-tenancy [Foundation]
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Every tenant row has `organization_id` | Mocked | All seed entities have `organizationId` |
-| PostgreSQL RLS enforces tenant isolation | Planned | Design documented in BACKEND_PLAN.md §7; not implemented in mock |
-| App DB role not superuser, no BYPASSRLS | Planned | Design documented; separate migration role planned |
-| Automated test: Org A cannot read/write Org B data | Planned | CI test planned in Phase 02 |
+| Every tenant row has `organization_id` | Implemented | All tenant models carry `organization_id` with foreign key and index |
+| PostgreSQL RLS enforces tenant isolation | Implemented | 17 RLS policies with fail-closed checks (`test_tenant_isolation.py`) |
+| App DB role not superuser, no BYPASSRLS | Implemented | `sharespace_app` role configured with NOBYPASSRLS; tested under RLS |
+| Automated test: Org A cannot read/write Org B data | Implemented | `tests/test_tenant_isolation.py` (5 tests passing) |
 
 ### FR-15: Policy Engine [Foundation]
 | Requirement | Status | Evidence |
@@ -249,16 +249,16 @@
 
 | Component | Status | Evidence |
 |-----------|--------|----------|
-| FastAPI app factory, lifespan, routing | Planned | Phase 01 |
-| Settings, env validation, CORS | Planned | Phase 01 |
-| Structured JSON logging + request IDs | Planned | Phase 01 |
-| `/healthz`, `/readyz` | Partial | Express has them; FastAPI needs them |
-| PostgreSQL connectivity, session management | Planned | Phase 01 |
-| Alembic migrations | Planned | Phase 02 |
-| Domain models (SQLAlchemy 2) | Planned | Phase 02 |
-| RLS policies + app role (no BYPASSRLS) | Planned | Phase 02 |
-| Exclusion constraint (overlap prevention) | Planned | Phase 02 |
-| Deterministic seed script | Planned | Phase 02 |
+| FastAPI app factory, lifespan, routing | Implemented | `backend/app/main.py`, `app/api/router.py` (Phase 01) |
+| Settings, env validation, CORS | Implemented | `backend/app/core/config.py` (Phase 01) |
+| Structured JSON logging + request IDs | Implemented | `backend/app/core/logging.py`, middleware (Phase 01) |
+| `/healthz`, `/readyz` | Implemented | `backend/app/main.py` with DB readiness check (Phase 01) |
+| PostgreSQL connectivity, session management | Implemented | `backend/app/core/database.py` with asyncpg + psycopg2 (Phase 01) |
+| Alembic migrations | Implemented | Revisions `103c1705e0dc` and `7663cc40d80a` (Phase 02) |
+| Domain models (SQLAlchemy 2) | Implemented | `backend/app/models/__init__.py` with 18 entities (Phase 02) |
+| RLS policies + app role (no BYPASSRLS) | Implemented | 17 RLS policies, `sharespace_app` role (`test_tenant_isolation.py`) |
+| Exclusion constraint (overlap prevention) | Implemented | `exclude_overlapping_confirmed_bookings` via btree_gist (`test_booking_concurrency_overlap.py`) |
+| Deterministic seed script | Implemented | `backend/scripts/seed.py` matching frontend demo 1:1 (`test_seed.py`) |
 | Demo login endpoint | Planned | Phase 03 |
 | Session/JWT handling | Planned | Phase 03 |
 | Permission service + middleware | Planned | Phase 03 |

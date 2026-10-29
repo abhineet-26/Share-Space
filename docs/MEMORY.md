@@ -174,15 +174,31 @@ If the core lifecycle is incomplete at H24, defer AI and analytics.
 - 2026-10-28: Adopted professional-product foundations (tenancy via RLS, policy-as-data, hash-chained ledger, CI) as Tier 1 inside the 48-hour build; QR, evidence, OIDC, outbox are Tier 2; the rest is roadmap.
 - 2026-10-28: Ledger is described as tamper-evident, not immutable, with external anchoring on the roadmap.
 
-- 2026-10-29: Phase 0 completed — repository, documentation, frontend, and skill audit complete. Phase 0 deliverables created: BACKEND_PLAN.md, CONTRACT.md, AGENT_USAGE.md, IMPLEMENTATION_STATUS.md. 221 Agency Agents skills inventoried; 11 relevant skills mapped to phases. Frontend is React 19 + Vite + Tailwind 4 (not Next.js) — will preserve existing frontend. Mock backend is comprehensive TypeScript engine in `src/mocks/` — will build FastAPI backend to match contract. Git remote `origin` → https://github.com/abhineet-26/Share-Space.git (main branch). Ready for Phase 01.
+- 2026-10-29: Phase 0 completed — repository, documentation, frontend, and skill audit complete. Phase 0 deliverables created: BACKEND_PLAN.md, CONTRACT.md, AGENT_USAGE.md, IMPLEMENTATION_STATUS.md.
+- 2026-10-29: Phase 01 completed — FastAPI foundation, lifespan, JSON structured logging, error handlers, /healthz and /readyz endpoints, CI workflow, Makefile.
+- 2026-10-29: Phase 02 completed — PostgreSQL domain models, Alembic migrations (tables, check constraints, btree_gist exclusion constraint on booking, ledger modification trigger, fail-closed RLS on all 17 tenant tables), transaction-local tenant context binding, deterministic seed script for 2 orgs (org_nit, org_harbour), 7 users, 11 resources, policies, bookings across all states, condition reports, incidents, outbox events, and tamper-evident Trust Ledger hash chains. 15 automated integration tests pass under the restricted runtime DB role (sharespace_app).
 
 Append dated decisions below as the project evolves.
 
 ## Current implementation status
 
-**Phase 0: COMPLETE** — Documentation and audit phase done. No backend implementation code introduced.
+**Phase 0: COMPLETE** — Documentation and audit phase done.
+**Phase 01: COMPLETE** — FastAPI foundation, health/readiness endpoints, structured logging, CI.
+**Phase 02: COMPLETE** — Tenant-safe schema, Alembic migrations, PostgreSQL RLS, exclusion constraints, tamper-evident ledger, deterministic seed data, 15 integration tests passing.
 
-**Implemented (in mock/frontend only):**
+**Implemented (Backend & Database):**
+- PostgreSQL 18 schema with 18 tables and Alembic migrations from empty to head
+- Row-Level Security (RLS) enabled and forced on all 17 tenant-scoped tables with fail-closed policies
+- Non-superuser application role `sharespace_app` (NOBYPASSRLS) and migration role `sharespace_migrate` (BYPASSRLS)
+- Transaction-local tenant context binding via `set_tenant_context` (`SET LOCAL app.org_id`)
+- PostgreSQL exclusion constraint (`btree_gist`) preventing overlapping confirmed bookings
+- Check constraint `start_at < end_at`
+- Database trigger `trg_protect_ledger_events` preventing application-level UPDATE and DELETE on historical ledger events
+- Canonical deterministic JSON serialization and SHA-256 hash chaining for Trust Ledger
+- Deterministic seed script `scripts/seed.py` matching frontend demo scenarios across 2 institutions
+- 15 automated integration tests covering RLS isolation, fail-closed behavior, cross-tenant denial, overlap rejection, migration downgrade/upgrade, ledger tamper detection, and seed repeatability
+
+**Implemented (in mock/frontend):**
 - Complete React 19 frontend with 25+ screens, role guards, responsive design
 - Full TypeScript domain types matching PRD/ARCHITECTURE
 - Comprehensive mock backend with deterministic eligibility, booking state machine, policy engine, waitlist, ledger, incidents
@@ -191,20 +207,4 @@ Append dated decisions below as the project evolves.
 - QR asset scan flow with contextual actions
 - All API contracts defined in `src/lib/api.ts` and `CONTRACT.md`
 
-**Planned (Phase 01+):**
-- FastAPI backend with PostgreSQL, SQLAlchemy 2, Alembic
-- RLS enforcement with dedicated app role (no BYPASSRLS)
-- Exclusion constraint for overlap prevention
-- Hash-chained Trust Ledger with verification + tamper test
-- CI with pytest+PostgreSQL, lint, type-check, migration check
-- Live frontend integration (VITE_API_MODE=live)
-- E2E tests for 11-step demo journey
-
-**Known blockers needing user decision:**
-- PostgreSQL hosting (local vs managed)
-- OIDC provider selection (Tier 2)
-- Object storage for evidence (Tier 2)
-- Deployment target for judge access
-- GitHub Actions secrets configuration
-
-**Next task:** Phase 01 — Backend Foundation and CI
+**Next task:** Phase 03 — Authentication, Sessions, and Scoped Permissions

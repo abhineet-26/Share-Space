@@ -14,6 +14,26 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from app.core.config import get_settings
 from app.models.base import Base
+# Import all models to register them with Base.metadata
+from app.models import (  # noqa: F401
+    Organization,
+    User,
+    TrainingRecord,
+    Resource,
+    ResourceRequirement,
+    AvailabilityWindow,
+    Asset,
+    Policy,
+    PolicyVersion,
+    Booking,
+    ConditionReport,
+    Incident,
+    IncidentComment,
+    Attachment,
+    LedgerEvent,
+    Notification,
+    OutboxEvent,
+)
 
 config = context.config
 

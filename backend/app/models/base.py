@@ -11,7 +11,7 @@ class Base(DeclarativeBase):
     """Base class for all SQLAlchemy models."""
 
     @declared_attr.directive
-    def __tablename__(cls) -> str:
+    def __tablename__(cls) -> str:  # type: ignore[misc]
         return cls.__name__.lower()
 
     # Common columns for all models

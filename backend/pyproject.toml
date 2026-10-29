@@ -64,10 +64,13 @@ include = ["app*"]
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+exclude = [".cpython3.11", "venv", ".venv"]
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP", "B", "C4", "SIM", "T20"]
 ignore = ["E501", "B008", "TRY003", "B904", "ARG001", "TRY400"]
 extend-select = ["ARG", "PTH", "ERA", "PD", "PL"]
-per-file-ignores = { "migrations/**/*.py" = ["E501", "I001"], "tests/**/*.py" = ["S101", "S106"] }
+per-file-ignores = { "migrations/**/*.py" = ["E501", "I001", "PLR0915", "PLR0912", "PLR2004", "W291"], "tests/**/*.py" = ["S101", "S106", "PLR2004", "T201"], "scripts/**/*.py" = ["T201", "PLR0915"] }
 
 [tool.ruff.format]
 quote-style = "double"
@@ -76,16 +79,17 @@ skip-magic-trailing-comma = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short --strict-markers --strict-config"
 markers = [
-    "unit = \"Unit tests\"",
-    "integration = \"Integration tests requiring database\"",
-    "api = \"API contract tests\"",
-    "slow = \"Slow tests\"",
+    "unit: Unit tests",
+    "integration: Integration tests requiring database",
+    "api: API contract tests",
+    "slow: Slow tests",
 ]
 
 [tool.coverage.run]
