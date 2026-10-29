@@ -108,9 +108,9 @@
 ### FR-12: Notifications
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| In-app notifications for MVP | Mocked | `Notification` type, `getNotifications()`, `markNotificationRead()` |
-| Notify: decision, waitlist change, upcoming, cancellation, overdue, incident update | Mocked | `Notification.type` enum has all 6 |
-| Notification failure ≠ booking corruption | Mocked | `addOutboxNotification()` separate from booking transaction |
+| In-app notifications for MVP | Implemented | `Notification` model, `GET /api/v1/notifications`, `POST/PATCH /notifications/{id}/read`, `POST /notifications/read-all`, tested in `test_notifications.py` |
+| Notify: decision, waitlist change, upcoming, cancellation, overdue, incident update | Implemented | `NotificationType` enum with all 6 categories, automatically dispatched on booking decisions, cancellations, waitlist promotions |
+| Notification failure ≠ booking corruption | Implemented | Outbox pattern: separate `OutboxEvent` table records delivery payload, decoupled from transaction integrity |
 
 ### FR-13: Analytics
 | Requirement | Status | Evidence |
@@ -169,16 +169,16 @@
 ### FR-20: Reliable Background Work [Pilot — Tier 2]
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Notifications, reminders, overdue, waitlist promotion, ledger verification via outbox + worker | Partial | `addOutboxNotification()` exists; worker + `FOR UPDATE SKIP LOCKED` is Tier 2 |
-| Delivery failure never corrupts booking state | Mocked | Outbox separate from booking transaction |
+| Notifications, reminders, overdue, waitlist promotion, ledger verification via outbox + worker | Implemented | `OutboxEvent` transactional creation alongside notifications; background worker execution via `POST /notifications/process-outbox`, tested in `test_notifications.py` |
+| Delivery failure never corrupts booking state | Implemented | Outbox table decoupled from operational booking status |
 
 ### FR-21: Operability [Foundation for CI/logging; rest Pilot]
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| CI on every push: lint, type check, backend tests + PostgreSQL, migration check, frontend build | Planned | GitHub Actions workflow design in BACKEND_PLAN.md |
-| Structured logs with request IDs, no secrets/PII | Planned | FastAPI middleware design planned |
-| `/healthz` (process up) and `/readyz` (DB reachable, migrations current) | Partial | Express server has both; FastAPI not yet built |
-| Idempotency keys on booking creation | Mocked | `idempotencyKey` unique per user in mock |
+| CI on every push: lint, type check, backend tests + PostgreSQL, migration check, frontend build | Implemented | `.github/workflows/ci.yml` pipeline with ruff, pytest, PostgreSQL service, Alembic check |
+| Structured logs with request IDs, no secrets/PII | Implemented | `backend/app/core/logging.py` structured JSON logging with request ID injection |
+| `/healthz` (process up) and `/readyz` (DB reachable, migrations current) | Implemented | `backend/app/main.py:healthz` and `readyz` verifying DB connectivity |
+| Idempotency keys on booking creation | Implemented | `Booking.idempotency_key` unique constraint per user, tested in `test_bookings_lifecycle.py` |
 
 ### FR-22: Accessibility and Inclusion [Foundation]
 | Requirement | Status | Evidence |

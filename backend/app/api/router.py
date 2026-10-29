@@ -9,6 +9,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.bookings import router as bookings_router
 from app.api.v1.eligibility import router as eligibility_router
 from app.api.v1.incidents import router as incidents_router
+from app.api.v1.notifications import router as notifications_router
 from app.api.v1.policies import router as policies_router
 from app.api.v1.resources import router as resources_router
 
@@ -23,5 +24,6 @@ api_router.include_router(eligibility_router)
 api_router.include_router(bookings_router)
 api_router.include_router(incidents_router)
 api_router.include_router(audit_events_router)
+api_router.include_router(notifications_router)
 
 

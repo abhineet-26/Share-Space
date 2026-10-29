@@ -18,6 +18,7 @@ from app.models import (
     Incident,
     IncidentStatus,
     LedgerEntityType,
+    NotificationType,
     Resource,
     Role,
     SupervisionLevel,
@@ -26,6 +27,7 @@ from app.models import (
 from app.schemas.booking import BookingCreate, BookingDecisionRequest
 from app.schemas.condition import ConditionReportCreate
 from app.services.ledger import append_ledger_event
+from app.services.notification import create_notification
 from app.services.policy import evaluate_eligibility
 
 ALLOWED_TRANSITIONS: dict[BookingStatus, list[BookingStatus]] = {
@@ -304,6 +306,17 @@ async def cancel_booking(
         metadata={"resourceId": booking.resource_id},
     )
 
+    await create_notification(
+        session=session,
+        organization_id=actor.organization_id,
+        user_id=booking.user_id,
+        type=NotificationType.CANCELLATION,
+        title="Booking Cancelled",
+        message=f"Your booking for resource {booking.resource_id} has been cancelled. Notes: {booking.decision_reason}",
+        related_entity_id=booking.id,
+        related_path=f"/bookings/{booking.id}",
+    )
+
     if was_confirmed:
         await promote_next_waitlisted_if_slot_open(
             session=session,
@@ -363,6 +376,17 @@ async def promote_next_waitlisted_if_slot_open(
         entity_id=promoted.id,
         reason="Slot released; top waitlisted request promoted to PENDING_REVIEW.",
         metadata={"resourceId": resource_id, "promotedUserId": promoted.user_id},
+    )
+
+    await create_notification(
+        session=session,
+        organization_id=promoted.organization_id,
+        user_id=promoted.user_id,
+        type=NotificationType.WAITLIST_CHANGE,
+        title="Waitlist Request Promoted",
+        message=f"A slot opened for resource {resource_id}! Your booking has been promoted to review.",
+        related_entity_id=promoted.id,
+        related_path=f"/bookings/{promoted.id}",
     )
 
     return promoted
@@ -483,6 +507,20 @@ async def decide_booking(
             "isPolicyOverride": booking.is_policy_override,
             "decidedBy": actor.id,
         },
+    )
+
+    notif_type = NotificationType.DECISION if target_status in [BookingStatus.APPROVED, BookingStatus.REJECTED] else NotificationType.WAITLIST_CHANGE
+    notif_title = f"Booking {target_status.value.replace('_', ' ').title()}"
+    notif_msg = f"Your booking request for resource {booking.resource_id} status changed to {target_status.value}. Reason: {booking.decision_reason}"
+    await create_notification(
+        session=session,
+        organization_id=actor.organization_id,
+        user_id=booking.user_id,
+        type=notif_type,
+        title=notif_title,
+        message=notif_msg,
+        related_entity_id=booking.id,
+        related_path=f"/bookings/{booking.id}",
     )
 
     return booking
