@@ -3,8 +3,32 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from pydantic import Field
+
 from app.models import ConditionLevel
 from app.schemas.base import CamelModel
+
+
+class PhotoInput(CamelModel):
+    file_name: str
+    data_url: str
+    mime_type: str | None = "image/svg+xml"
+
+
+class ConditionReportCreate(CamelModel):
+    stage: str
+    condition: ConditionLevel
+    accessories: list[dict[str, Any]] = []
+    notes: str = ""
+    photos: list[PhotoInput] = []
+    acknowledged_rules: bool = Field(..., description="Must acknowledge usage rules")
+    incident_category: str | None = None
+    incident_description: str | None = None
+
+
+class StaffConfirmationRequest(CamelModel):
+    stage: str = "RETURN"  # HANDOVER or RETURN
+    notes: str = ""
 
 
 class ConditionReportRead(CamelModel):

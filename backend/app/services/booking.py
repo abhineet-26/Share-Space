@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
@@ -7,15 +8,23 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
+    Asset,
+    AssetStatus,
+    Attachment,
     Booking,
     BookingStatus,
     CheckStatus,
+    ConditionReport,
+    Incident,
+    IncidentStatus,
     LedgerEntityType,
     Resource,
     Role,
+    SupervisionLevel,
     User,
 )
 from app.schemas.booking import BookingCreate, BookingDecisionRequest
+from app.schemas.condition import ConditionReportCreate
 from app.services.ledger import append_ledger_event
 from app.services.policy import evaluate_eligibility
 
@@ -58,11 +67,13 @@ ALLOWED_TRANSITIONS: dict[BookingStatus, list[BookingStatus]] = {
     BookingStatus.CHECKED_OUT_TO_USER: [
         BookingStatus.RETURN_PENDING_CONFIRMATION,
         BookingStatus.RETURNED,
+        BookingStatus.CLOSED,
         BookingStatus.OVERDUE,
     ],
     BookingStatus.OVERDUE: [
         BookingStatus.RETURN_PENDING_CONFIRMATION,
         BookingStatus.RETURNED,
+        BookingStatus.CLOSED,
     ],
     BookingStatus.RETURN_PENDING_CONFIRMATION: [
         BookingStatus.RETURNED,
@@ -474,4 +485,379 @@ async def decide_booking(
         },
     )
 
+    return booking
+
+
+async def check_in_booking(
+    session: AsyncSession,
+    actor: User,
+    booking_id: str,
+    payload: ConditionReportCreate,
+) -> Booking:
+    """Submit initial condition report and check out resource to user."""
+    stmt = select(Booking).where(Booking.id == booking_id)
+    res = await session.execute(stmt)
+    booking = res.scalar_one_or_none()
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "BOOKING_NOT_FOUND", "message": "Booking not found."},
+        )
+
+    actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
+    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    if booking.user_id != actor.id and not is_staff:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "FORBIDDEN", "message": "Only the booking holder or authorised staff can check in."},
+        )
+
+    if not payload.acknowledged_rules:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "ACKNOWLEDGEMENT_REQUIRED", "message": "You must acknowledge the usage and safety rules before check-in."},
+        )
+
+    validate_transition(booking.status, BookingStatus.CHECKED_OUT_TO_USER)
+
+    now = datetime.now(UTC)
+    attachment_ids: list[str] = []
+    attachment_hashes: list[str] = []
+
+    for ph in (payload.photos or [])[:4]:
+        raw_bytes = (ph.data_url + ph.file_name).encode("utf-8")
+        sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
+
+        att = Attachment(
+            organization_id=actor.organization_id,
+            file_name=ph.file_name,
+            mime_type=ph.mime_type or "image/svg+xml",
+            size_bytes=len(ph.data_url),
+            sha256=sha256_hash,
+            data_url=ph.data_url,
+            uploaded_by=actor.id,
+            linked_entity_type="CONDITION_REPORT",
+            confirmed=True,
+        )
+        session.add(att)
+        await session.flush()
+        att.linked_entity_id = att.id
+        attachment_ids.append(att.id)
+        attachment_hashes.append(sha256_hash)
+
+    # Check staff confirmation if staff is performing check-in
+    staff_confirmed_by = actor.id if is_staff else None
+    staff_confirmed_at = now if is_staff else None
+
+    report = ConditionReport(
+        organization_id=actor.organization_id,
+        booking_id=booking.id,
+        stage="CHECK_IN",
+        condition=payload.condition,
+        accessories=payload.accessories or [],
+        notes=payload.notes.strip(),
+        attachment_ids=attachment_ids,
+        attachment_hashes=attachment_hashes,
+        acknowledged_rules=True,
+        reporter_id=actor.id,
+        reporter_name=actor.name,
+        actual_timestamp=now,
+        staff_confirmed_by=staff_confirmed_by,
+        staff_confirmed_at=staff_confirmed_at,
+    )
+    session.add(report)
+
+    booking.status = BookingStatus.CHECKED_OUT_TO_USER
+    if is_staff:
+        booking.handover_confirmed_by = actor.id
+        booking.handover_confirmed_at = now
+
+    # Update physical asset status
+    ast_stmt = select(Asset).where(Asset.resource_id == booking.resource_id)
+    ast_res = await session.execute(ast_stmt)
+    asset = ast_res.scalar_one_or_none()
+    if asset:
+        asset.status = AssetStatus.IN_USE
+
+    await session.flush()
+
+    await append_ledger_event(
+        session=session,
+        organization_id=actor.organization_id,
+        actor_id=actor.id,
+        actor_name=actor.name,
+        actor_role=actor_roles[0] if actor_roles else "USER",
+        action="BOOKING_CHECKED_OUT",
+        entity_type=LedgerEntityType.BOOKING,
+        entity_id=booking.id,
+        reason=payload.notes.strip() or "Resource checked out to user.",
+        metadata={
+            "resourceId": booking.resource_id,
+            "condition": payload.condition.value,
+            "attachmentSha256": attachment_hashes,
+        },
+    )
+
+    return booking
+
+
+async def return_booking(
+    session: AsyncSession,
+    actor: User,
+    booking_id: str,
+    payload: ConditionReportCreate,
+) -> Booking:
+    """Submit final condition report on return, handle supervision and optional incident."""
+    stmt = select(Booking).where(Booking.id == booking_id)
+    res = await session.execute(stmt)
+    booking = res.scalar_one_or_none()
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "BOOKING_NOT_FOUND", "message": "Booking not found."},
+        )
+
+    actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
+    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    if booking.user_id != actor.id and not is_staff:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "FORBIDDEN", "message": "Only the booking holder or authorised staff can return this resource."},
+        )
+
+    # Check resource supervision level
+    res_stmt = select(Resource).where(Resource.id == booking.resource_id)
+    res_res = await session.execute(res_stmt)
+    resource = res_res.scalar_one()
+
+    requires_staff_confirmation = (
+        resource.supervision in [SupervisionLevel.STAFF_CONFIRMATION, SupervisionLevel.STAFF_PRESENT]
+        and not is_staff
+    )
+
+    target_status = BookingStatus.RETURN_PENDING_CONFIRMATION if requires_staff_confirmation else BookingStatus.CLOSED
+    validate_transition(booking.status, target_status)
+
+    now = datetime.now(UTC)
+    attachment_ids: list[str] = []
+    attachment_hashes: list[str] = []
+
+    for ph in (payload.photos or [])[:4]:
+        raw_bytes = (ph.data_url + ph.file_name).encode("utf-8")
+        sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
+
+        att = Attachment(
+            organization_id=actor.organization_id,
+            file_name=ph.file_name,
+            mime_type=ph.mime_type or "image/svg+xml",
+            size_bytes=len(ph.data_url),
+            sha256=sha256_hash,
+            data_url=ph.data_url,
+            uploaded_by=actor.id,
+            linked_entity_type="CONDITION_REPORT",
+            confirmed=True,
+        )
+        session.add(att)
+        await session.flush()
+        att.linked_entity_id = att.id
+        attachment_ids.append(att.id)
+        attachment_hashes.append(sha256_hash)
+
+    staff_confirmed_by = actor.id if is_staff else None
+    staff_confirmed_at = now if is_staff else None
+
+    report = ConditionReport(
+        organization_id=actor.organization_id,
+        booking_id=booking.id,
+        stage="RETURN",
+        condition=payload.condition,
+        accessories=payload.accessories or [],
+        notes=payload.notes.strip(),
+        attachment_ids=attachment_ids,
+        attachment_hashes=attachment_hashes,
+        acknowledged_rules=True,
+        reporter_id=actor.id,
+        reporter_name=actor.name,
+        actual_timestamp=now,
+        staff_confirmed_by=staff_confirmed_by,
+        staff_confirmed_at=staff_confirmed_at,
+    )
+    session.add(report)
+
+    # If incident reported alongside return
+    if payload.incident_category and payload.incident_description:
+        incident = Incident(
+            organization_id=actor.organization_id,
+            booking_id=booking.id,
+            resource_id=booking.resource_id,
+            reporter_id=actor.id,
+            reporter_name=actor.name,
+            category=payload.incident_category,
+            reported_stage="Return inspection",
+            description=payload.incident_description.strip(),
+            attachment_ids=attachment_ids,
+            attachment_hashes=attachment_hashes,
+            status=IncidentStatus.REPORTED,
+            requires_human_review=True,
+        )
+        session.add(incident)
+        await session.flush()
+
+        await append_ledger_event(
+            session=session,
+            organization_id=actor.organization_id,
+            actor_id=actor.id,
+            actor_name=actor.name,
+            actor_role=actor_roles[0] if actor_roles else "USER",
+            action="INCIDENT_REPORTED",
+            entity_type=LedgerEntityType.INCIDENT,
+            entity_id=incident.id,
+            reason=incident.description,
+            metadata={
+                "bookingId": booking.id,
+                "resourceId": booking.resource_id,
+                "category": incident.category,
+                "attachmentSha256": attachment_hashes,
+            },
+        )
+
+    booking.status = target_status
+    if not requires_staff_confirmation:
+        booking.return_confirmed_by = actor.id if is_staff else "SYSTEM"
+        booking.return_confirmed_at = now
+
+        ast_stmt = select(Asset).where(Asset.resource_id == booking.resource_id)
+        ast_res = await session.execute(ast_stmt)
+        asset = ast_res.scalar_one_or_none()
+        if asset:
+            asset.status = AssetStatus.AVAILABLE
+
+    await session.flush()
+
+    action_label = "BOOKING_RETURN_PENDING_CONFIRMATION" if requires_staff_confirmation else "BOOKING_CLOSED"
+    await append_ledger_event(
+        session=session,
+        organization_id=actor.organization_id,
+        actor_id=actor.id,
+        actor_name=actor.name,
+        actor_role=actor_roles[0] if actor_roles else "USER",
+        action=action_label,
+        entity_type=LedgerEntityType.BOOKING,
+        entity_id=booking.id,
+        reason=payload.notes.strip() or "Resource return condition recorded.",
+        metadata={
+            "resourceId": booking.resource_id,
+            "status": booking.status.value,
+            "condition": payload.condition.value,
+            "attachmentSha256": attachment_hashes,
+        },
+    )
+
+    if not requires_staff_confirmation:
+        await promote_next_waitlisted_if_slot_open(
+            session=session,
+            resource_id=booking.resource_id,
+            freed_start=booking.start_at,
+            freed_end=booking.end_at,
+            actor=actor,
+        )
+
+    return booking
+
+
+async def confirm_staff_handover_or_return(
+    session: AsyncSession,
+    actor: User,
+    booking_id: str,
+    stage: str,
+    notes: str,
+) -> Booking:
+    """Authorised staff confirmation of handover or return for supervised equipment."""
+    actor_roles = [r.value if hasattr(r, "value") else str(r) for r in actor.roles]
+    is_staff = any(r in [Role.OWNER.value, Role.MANAGER.value, Role.ADMIN.value] for r in actor_roles)
+    if not is_staff:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "FORBIDDEN", "message": "Only authorised staff can confirm handover or return."},
+        )
+
+    stmt = select(Booking).where(Booking.id == booking_id)
+    res = await session.execute(stmt)
+    booking = res.scalar_one_or_none()
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "BOOKING_NOT_FOUND", "message": "Booking not found."},
+        )
+
+    now = datetime.now(UTC)
+    if stage == "HANDOVER":
+        booking.handover_confirmed_by = actor.id
+        booking.handover_confirmed_at = now
+
+        cr_stmt = select(ConditionReport).where(
+            ConditionReport.booking_id == booking.id,
+            ConditionReport.stage == "CHECK_IN",
+        )
+        cr_res = await session.execute(cr_stmt)
+        check_in_rep = cr_res.scalar_one_or_none()
+        if check_in_rep:
+            check_in_rep.staff_confirmed_by = actor.id
+            check_in_rep.staff_confirmed_at = now
+
+        await append_ledger_event(
+            session=session,
+            organization_id=actor.organization_id,
+            actor_id=actor.id,
+            actor_name=actor.name,
+            actor_role=actor_roles[0] if actor_roles else "MANAGER",
+            action="HANDOVER_STAFF_CONFIRMED",
+            entity_type=LedgerEntityType.BOOKING,
+            entity_id=booking.id,
+            reason=notes.strip() or "Technician verified initial handover condition.",
+            metadata={"bookingId": booking.id},
+        )
+    else:
+        booking.status = BookingStatus.CLOSED
+        booking.return_confirmed_by = actor.id
+        booking.return_confirmed_at = now
+
+        cr_stmt = select(ConditionReport).where(
+            ConditionReport.booking_id == booking.id,
+            ConditionReport.stage == "RETURN",
+        )
+        cr_res = await session.execute(cr_stmt)
+        return_rep = cr_res.scalar_one_or_none()
+        if return_rep:
+            return_rep.staff_confirmed_by = actor.id
+            return_rep.staff_confirmed_at = now
+
+        ast_stmt = select(Asset).where(Asset.resource_id == booking.resource_id)
+        ast_res = await session.execute(ast_stmt)
+        asset = ast_res.scalar_one_or_none()
+        if asset:
+            asset.status = AssetStatus.AVAILABLE
+
+        await append_ledger_event(
+            session=session,
+            organization_id=actor.organization_id,
+            actor_id=actor.id,
+            actor_name=actor.name,
+            actor_role=actor_roles[0] if actor_roles else "MANAGER",
+            action="RETURN_STAFF_CONFIRMED",
+            entity_type=LedgerEntityType.BOOKING,
+            entity_id=booking.id,
+            reason=notes.strip() or "Technician inspected returned resource and confirmed operational closure.",
+            metadata={"bookingId": booking.id, "status": "CLOSED"},
+        )
+
+        await promote_next_waitlisted_if_slot_open(
+            session=session,
+            resource_id=booking.resource_id,
+            freed_start=booking.start_at,
+            freed_end=booking.end_at,
+            actor=actor,
+        )
+
+    await session.flush()
     return booking

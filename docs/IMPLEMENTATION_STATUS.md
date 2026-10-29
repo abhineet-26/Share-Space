@@ -76,26 +76,26 @@
 ### FR-08: Check-in and Condition Report
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Check-in only for approved booking in time window | Mocked | `validateTransition(APPROVED → CHECKED_OUT_TO_USER)` |
-| Record actor, timestamp, condition, notes, evidence refs | Mocked | `ConditionReport` with all fields |
-| Staff confirmation for supervised resources | Mocked | `supervision: STAFF_CONFIRMATION` → `staffConfirmedBy` required |
-| Condition reports append-only; corrections = new events | Mocked | `ConditionReport` immutable; ledger records changes |
+| Check-in only for approved booking in time window | Implemented | `backend/app/services/booking.py:check_in_booking`, `POST /bookings/{id}/check-in`, tested in `test_condition_incidents.py` |
+| Record actor, timestamp, condition, notes, evidence refs | Implemented | `ConditionReport` model with SHA-256 evidence photo hashes and rules acknowledgement |
+| Staff confirmation for supervised resources | Implemented | `supervision: STAFF_CONFIRMATION` enforces `staff_confirmed_by` via `POST /bookings/{id}/return-confirmation` |
+| Condition reports append-only; corrections = new events | Implemented | `ConditionReport` records are append-only; state transitions emit Trust Ledger events |
 
 ### FR-09: Return / Check-out
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Return initiation, actual time, final condition, accessories, notes | Mocked | `submitReturn()` creates `RETURN` ConditionReport |
-| Staff confirmation where policy requires | Mocked | `RETURN_PENDING_CONFIRMATION` → `CLOSED` on staff confirm |
-| Transaction closed only when all return steps complete | Mocked | Status machine enforces `CLOSED` only after confirmation |
-| Damage/dispute → incident open, booking closes operationally | Mocked | `openIncidentCategory` on return creates `Incident` |
+| Return initiation, actual time, final condition, accessories, notes | Implemented | `backend/app/services/booking.py:return_booking`, `POST /bookings/{id}/return`, tested in `test_condition_incidents.py` |
+| Staff confirmation where policy requires | Implemented | Supervised resources transition to `RETURN_PENDING_CONFIRMATION`; staff confirm via `return-confirmation` |
+| Transaction closed only when all return steps complete | Implemented | State machine enforces `CLOSED` after staff confirm or on return for unsupervised resources |
+| Damage/dispute → incident open, booking closes operationally | Implemented | `return_booking` files incident report and ledger event, frees asset if appropriate |
 
 ### FR-10: Incident Management
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Report damage, delay, missing accessory, safety, conflict | Mocked | `Incident.category` enum with 6 values |
-| Incident: status, reporter, description, evidence, reviewer, resolution, timestamps | Mocked | `Incident` type has all fields |
-| Only authorised reviewers resolve | Mocked | `resolveIncident()` requires `OWNER/MANAGER/ADMIN` |
-| No automatic penalties/liability | Mocked | `requiresHumanReview: true`, resolution outcomes are non-punitive |
+| Report damage, delay, missing accessory, safety, conflict | Implemented | `Incident` model, `POST /bookings/{id}/incidents`, categories enforced |
+| Incident: status, reporter, description, evidence, reviewer, resolution, timestamps | Implemented | `Incident` & `IncidentComment` models, `POST /incidents/{id}/comments`, full history |
+| Only authorised reviewers resolve | Implemented | `POST /incidents/{id}/resolution` requires `OWNER/MANAGER/ADMIN` |
+| No automatic penalties/liability | Implemented | Strict zero-automated-penalty enforcement per RULES.md; human review and institutional reasoning required |
 
 ### FR-11: Audit History
 | Requirement | Status | Evidence |

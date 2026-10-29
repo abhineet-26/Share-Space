@@ -675,6 +675,28 @@ async def seed_database(session: AsyncSession) -> None:
             status=AssetStatus.AVAILABLE,
             last_calibrated_at=now - timedelta(days=20),
         ),
+        Asset(
+            id="ast_dmm_01",
+            organization_id="org_nit",
+            resource_id="res_dmm",
+            asset_tag="NIT-EE-DMM-01",
+            serial_number="FLK-87V-10293",
+            qr_token="qr_sec_dmm_4b8c1a9e7f3d",
+            condition=ConditionLevel.GOOD,
+            status=AssetStatus.IN_USE,
+            last_calibrated_at=now - timedelta(days=45),
+        ),
+        Asset(
+            id="ast_solder_01",
+            organization_id="org_nit",
+            resource_id="res_soldering",
+            asset_tag="NIT-EE-SLD-01",
+            serial_number="WLR-1010-4491",
+            qr_token="qr_sec_sld_2d7e5a1b8c9f",
+            condition=ConditionLevel.GOOD,
+            status=AssetStatus.IN_USE,
+            last_calibrated_at=now - timedelta(days=60),
+        ),
     ]
     session.add_all(assets)
     await session.flush()

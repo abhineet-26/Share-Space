@@ -32,12 +32,22 @@ from app.schemas.booking import (
     BookingEnrichedUserRead,
     BookingRead,
 )
-from app.schemas.condition import ConditionReportRead
-from app.schemas.incident import IncidentRead
+from app.schemas.condition import (
+    ConditionReportCreate,
+    ConditionReportRead,
+    StaffConfirmationRequest,
+)
+from app.schemas.incident import IncidentCreate, IncidentRead
 from app.schemas.ledger import LedgerEventRead
 from app.schemas.resource import ResourceRead
 from app.services.booking import (
     cancel_booking as cancel_booking_service,
+)
+from app.services.booking import (
+    check_in_booking as check_in_booking_service,
+)
+from app.services.booking import (
+    confirm_staff_handover_or_return as confirm_staff_service,
 )
 from app.services.booking import (
     create_booking as create_booking_service,
@@ -45,6 +55,10 @@ from app.services.booking import (
 from app.services.booking import (
     decide_booking as decide_booking_service,
 )
+from app.services.booking import (
+    return_booking as return_booking_service,
+)
+from app.services.incident import create_incident as create_incident_service
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -274,3 +288,60 @@ async def decide_booking(
     session: AsyncSession = Depends(get_db),
 ) -> Booking:
     return await decide_booking_service(session, current_user, booking_id, payload)
+
+
+@router.post(
+    "/{booking_id}/check-in",
+    response_model=BookingRead,
+    summary="Submit initial condition report at handover and check out resource",
+)
+async def check_in(
+    booking_id: str,
+    payload: ConditionReportCreate,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> Booking:
+    return await check_in_booking_service(session, current_user, booking_id, payload)
+
+
+@router.post(
+    "/{booking_id}/return",
+    response_model=BookingRead,
+    summary="Submit final condition report on return and optionally file incident",
+)
+async def return_booking_endpoint(
+    booking_id: str,
+    payload: ConditionReportCreate,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> Booking:
+    return await return_booking_service(session, current_user, booking_id, payload)
+
+
+@router.post(
+    "/{booking_id}/return-confirmation",
+    response_model=BookingRead,
+    summary="Staff confirmation of handover or return for supervised equipment",
+)
+async def confirm_return(
+    booking_id: str,
+    payload: StaffConfirmationRequest,
+    current_user: User = Depends(require_roles([Role.OWNER, Role.MANAGER, Role.ADMIN])),
+    session: AsyncSession = Depends(get_db),
+) -> Booking:
+    return await confirm_staff_service(session, current_user, booking_id, payload.stage, payload.notes)
+
+
+@router.post(
+    "/{booking_id}/incidents",
+    response_model=IncidentRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="File an incident report linked to a booking",
+)
+async def create_booking_incident(
+    booking_id: str,
+    payload: IncidentCreate,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> Incident:
+    return await create_incident_service(session, current_user, booking_id, payload)
