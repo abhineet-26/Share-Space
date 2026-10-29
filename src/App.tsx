@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { ShieldAlert, ArrowRight } from 'lucide-react';
 import { AppProvider, useApp } from './app/AppContext';
 import { AppShell } from './components/AppShell';
@@ -38,6 +38,28 @@ import {
   ProfilePage,
   AboutPage,
 } from './features/admin/AdminAndProfilePages';
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useApp();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs font-mono-tech text-[var(--text-secondary)]">
+          Connecting to institutional identity...
+        </span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
 
 const RoleGuard: React.FC<{
   allowedRoles: Role[];
@@ -114,114 +136,254 @@ export default function App() {
         <AppShell>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/discover" element={<DiscoverPage />} />
-            <Route path="/resources/:id" element={<ResourceDetailPage />} />
-            <Route path="/resources/:id/request" element={<BookingRequestPage />} />
-            <Route path="/bookings" element={<MyBookingsPage />} />
-            <Route path="/bookings/:id" element={<BookingDetailPage />} />
-            <Route path="/bookings/:id/check-in" element={<CheckInPage />} />
-            <Route path="/bookings/:id/return" element={<ReturnPage />} />
-            <Route path="/bookings/:id/incident" element={<IncidentReportPage />} />
+            <Route path="/about" element={<AboutPage />} />
+
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/discover"
+              element={
+                <ProtectedRoute>
+                  <DiscoverPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/resources/:id"
+              element={
+                <ProtectedRoute>
+                  <ResourceDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/resources/:id/request"
+              element={
+                <ProtectedRoute>
+                  <BookingRequestPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings"
+              element={
+                <ProtectedRoute>
+                  <MyBookingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings/:id"
+              element={
+                <ProtectedRoute>
+                  <BookingDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings/:id/check-in"
+              element={
+                <ProtectedRoute>
+                  <CheckInPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings/:id/return"
+              element={
+                <ProtectedRoute>
+                  <ReturnPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings/:id/incident"
+              element={
+                <ProtectedRoute>
+                  <IncidentReportPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Manager / Owner Scoped Routes */}
             <Route
               path="/review"
               element={
-                <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
-                  <ReviewWorkspacePage />
-                </RoleGuard>
+                <ProtectedRoute>
+                  <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
+                    <ReviewWorkspacePage />
+                  </RoleGuard>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/review/:bookingId"
               element={
-                <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
-                  <ReviewWorkspacePage />
-                </RoleGuard>
+                <ProtectedRoute>
+                  <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
+                    <ReviewWorkspacePage />
+                  </RoleGuard>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/handover"
               element={
-                <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
-                  <StaffHandoverPage />
-                </RoleGuard>
+                <ProtectedRoute>
+                  <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
+                    <StaffHandoverPage />
+                  </RoleGuard>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/owner/resources"
               element={
-                <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
-                  <OwnerResourcesPage />
-                </RoleGuard>
+                <ProtectedRoute>
+                  <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
+                    <OwnerResourcesPage />
+                  </RoleGuard>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/owner/resources/new"
               element={
-                <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
-                  <OwnerResourcesPage />
-                </RoleGuard>
+                <ProtectedRoute>
+                  <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
+                    <OwnerResourcesPage />
+                  </RoleGuard>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/owner/resources/:id/edit"
               element={
-                <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
-                  <OwnerResourcesPage />
-                </RoleGuard>
+                <ProtectedRoute>
+                  <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
+                    <OwnerResourcesPage />
+                  </RoleGuard>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/analytics"
               element={
-                <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
-                  <AnalyticsPage />
-                </RoleGuard>
+                <ProtectedRoute>
+                  <RoleGuard allowedRoles={['OWNER', 'MANAGER', 'ADMIN']}>
+                    <AnalyticsPage />
+                  </RoleGuard>
+                </ProtectedRoute>
               }
             />
 
             {/* Incidents & Ledger */}
-            <Route path="/incidents" element={<IncidentsListAndDetailPage />} />
-            <Route path="/incidents/:id" element={<IncidentsListAndDetailPage />} />
-            <Route path="/ledger" element={<TrustLedgerPage />} />
+            <Route
+              path="/incidents"
+              element={
+                <ProtectedRoute>
+                  <IncidentsListAndDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/incidents/:id"
+              element={
+                <ProtectedRoute>
+                  <IncidentsListAndDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ledger"
+              element={
+                <ProtectedRoute>
+                  <TrustLedgerPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Assets & QR */}
-            <Route path="/assets/scan/:token" element={<AssetScanLandingPage />} />
-            <Route path="/labels/:resourceId" element={<PrintableQrLabelSheetPage />} />
+            <Route
+              path="/assets/scan/:token"
+              element={
+                <ProtectedRoute>
+                  <AssetScanLandingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/labels/:resourceId"
+              element={
+                <ProtectedRoute>
+                  <PrintableQrLabelSheetPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Admin Governance */}
             <Route
               path="/admin/policies"
               element={
-                <RoleGuard allowedRoles={['OWNER', 'ADMIN']}>
-                  <PoliciesPage />
-                </RoleGuard>
+                <ProtectedRoute>
+                  <RoleGuard allowedRoles={['OWNER', 'ADMIN']}>
+                    <PoliciesPage />
+                  </RoleGuard>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/admin/policies/:id"
               element={
-                <RoleGuard allowedRoles={['OWNER', 'ADMIN']}>
-                  <PoliciesPage />
-                </RoleGuard>
+                <ProtectedRoute>
+                  <RoleGuard allowedRoles={['OWNER', 'ADMIN']}>
+                    <PoliciesPage />
+                  </RoleGuard>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/admin/users"
               element={
-                <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'OWNER']}>
-                  <AdminUsersPage />
-                </RoleGuard>
+                <ProtectedRoute>
+                  <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'OWNER']}>
+                    <AdminUsersPage />
+                  </RoleGuard>
+                </ProtectedRoute>
               }
             />
-            <Route path="/admin/settings" element={<AdminSettingsPage />} />
+            <Route
+              path="/admin/settings"
+              element={
+                <ProtectedRoute>
+                  <AdminSettingsPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* User & Info */}
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/about" element={<AboutPage />} />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </AppShell>

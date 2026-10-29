@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import {
   Search,
   ArrowRight,
@@ -111,7 +111,9 @@ export const DashboardPage: React.FC = () => {
     navigate(`/discover${searchQuery.trim() ? `?q=${encodeURIComponent(searchQuery.trim())}` : ''}`);
   };
 
-  if (!user || !organization) return null;
+  if (!user || !organization) {
+    return <Navigate to="/login" replace />;
+  }
 
   // Next actionable booking for User
   const nextActionableBooking = myBookings.find((b) =>

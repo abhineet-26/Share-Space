@@ -129,7 +129,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setOrganization(null);
       setNotifications([]);
-      if (err?.statusCode !== 401 && err?.code !== 'HTTP_401' && err?.code !== 'UNAUTHORIZED') {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('sharespace_token');
+      }
+      if (
+        err?.status !== 401 &&
+        err?.statusCode !== 401 &&
+        err?.code !== 'HTTP_401' &&
+        err?.code !== 'UNAUTHORIZED' &&
+        err?.code !== 'UNAUTHENTICATED'
+      ) {
         console.warn('Session refresh:', err?.message || err);
       }
     } finally {

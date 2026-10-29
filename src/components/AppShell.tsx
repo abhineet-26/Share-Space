@@ -52,7 +52,81 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (!user || !organization) {
-    return <div className="min-h-screen bg-[var(--bg-app)]">{children}</div>;
+    return (
+      <div className="min-h-screen flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)]">
+        {/* Unauthenticated Navigation Header */}
+        <header className="h-[64px] px-6 border-b border-[var(--border-color)] bg-[var(--bg-surface)] flex items-center justify-between select-none">
+          <Link
+            to="/login"
+            className="text-base font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2"
+          >
+            <span className="w-2.5 h-2.5 rounded-[2px] bg-[var(--brand-primary)] inline-block" />
+            <span>SHARESPACE</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-[6px] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <Link
+              to="/about"
+              className="hidden sm:inline-flex px-3 py-1.5 text-xs font-medium rounded-[6px] border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              Architecture & Trust
+            </Link>
+            <Link
+              to="/login"
+              className="px-3.5 py-1.5 text-xs font-medium rounded-[6px] bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)] hover:bg-[var(--brand-hover)] transition-colors"
+            >
+              Select Persona
+            </Link>
+          </div>
+        </header>
+
+        {/* Viewport */}
+        <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </main>
+
+        {/* Global Toasts */}
+        {toasts.length > 0 && (
+          <aside aria-label="Notifications" className="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm w-full">
+            {toasts.map((toast) => (
+              <div
+                key={toast.id}
+                role="alert"
+                className={`p-3 rounded-[8px] border text-xs shadow-lg flex items-start justify-between gap-2 ${
+                  toast.type === 'success'
+                    ? 'bg-[var(--status-success-bg)] border-[var(--status-success)]/40 text-[var(--status-success)]'
+                    : toast.type === 'error'
+                    ? 'bg-[var(--status-danger-bg)] border-[var(--status-danger)]/40 text-[var(--status-danger)]'
+                    : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-primary)]'
+                }`}
+              >
+                <div>
+                  <div className="font-semibold">{toast.title}</div>
+                  {toast.message && (
+                    <div className="text-[11px] opacity-90 mt-0.5">{toast.message}</div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => dismissToast(toast.id)}
+                  className="text-current opacity-70 hover:opacity-100 cursor-pointer"
+                  aria-label="Dismiss alert"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </aside>
+        )}
+      </div>
+    );
   }
 
   const navItems: NavItem[] = [
