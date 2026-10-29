@@ -58,6 +58,17 @@ export interface User {
   demoPersonaNote?: string;
 }
 
+export interface DemoPersona extends User {
+  organizationName: string;
+}
+
+export interface DemoPersonasResponse {
+  enabled: boolean;
+  resetEnabled: boolean;
+  personas: DemoPersona[];
+  organizations: Organization[];
+}
+
 export interface TrainingRecord {
   id: string;
   userId: string;

@@ -17,6 +17,8 @@ import {
   EligibilityEvaluationResult,
   Role,
   ConditionLevel,
+  DemoPersona,
+  DemoPersonasResponse,
 } from './types';
 import {
   getDb,
@@ -79,6 +81,28 @@ export const api = {
   },
 
   // --- AUTH ---
+  async getDemoPersonas(): Promise<DemoPersonasResponse> {
+    if (API_MODE === 'live') {
+      return liveFetch<DemoPersonasResponse>('/auth/demo-personas');
+    }
+    const db = await getDb();
+    const personas: DemoPersona[] = db.users
+      .filter((u) => u.demoPersonaNote)
+      .map((u) => {
+        const org = db.organizations.find((o) => o.id === u.organizationId);
+        return {
+          ...u,
+          organizationName: org?.name || u.organizationId,
+        };
+      });
+    return {
+      enabled: true,
+      resetEnabled: true,
+      personas,
+      organizations: structuredClone(db.organizations),
+    };
+  },
+
   async getMe(): Promise<{ user: User; organization: Organization; allDemoUsers: User[]; allOrganizations: Organization[] }> {
     if (API_MODE === 'live') {
       return liveFetch('/me');
@@ -124,6 +148,15 @@ export const api = {
       return;
     }
     await resetDemoDatabase();
+  },
+
+  async logout(): Promise<void> {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('sharespace_token');
+    }
+    if (API_MODE === 'live') {
+      await liveFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+    }
   },
 
   // --- RESOURCES ---

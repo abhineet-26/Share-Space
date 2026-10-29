@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
@@ -50,6 +50,69 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("application_shutdown")
     await engine.dispose()
     await migration_engine.dispose()
+
+
+def _register_health_routes(app: FastAPI) -> None:
+    @app.get("/healthz", tags=["Health"])
+    async def healthz():
+        return {
+            "status": "ok",
+            "timestamp": __import__("datetime")
+            .datetime.now(__import__("datetime").timezone.utc)
+            .isoformat(),
+        }
+
+    @app.get("/readyz", tags=["Health"])
+    async def readyz(response: Response):
+        db_ok = False
+        migration_version = None
+        migration_status = "unknown"
+        try:
+            async with engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+                db_ok = True
+                try:
+                    res = await conn.execute(
+                        text("SELECT version_num FROM alembic_version LIMIT 1")
+                    )
+                    row = res.scalar_one_or_none()
+                    if row:
+                        migration_version = str(row)
+                        migration_status = "applied"
+                    else:
+                        migration_status = "unmigrated"
+                except Exception as exc:
+                    err_msg = str(exc).lower()
+                    if (
+                        'relation "alembic_version" does not exist' in err_msg
+                        or "no such table" in err_msg
+                    ):
+                        migration_status = "table_missing"
+                    elif "permission denied" in err_msg:
+                        migration_status = "permission_denied"
+                    else:
+                        migration_status = f"error: {type(exc).__name__}"
+        except Exception as exc:
+            err_msg = str(exc).lower()
+            if "permission denied" in err_msg:
+                migration_status = "permission_denied"
+            else:
+                migration_status = "database_unavailable"
+
+        is_ready = db_ok and migration_version is not None
+        if not is_ready:
+            response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+        return {
+            "status": "ready" if is_ready else "not_ready",
+            "database": "connected" if db_ok else "disconnected",
+            "migration_version": migration_version,
+            "migration_status": migration_status,
+            "mode": settings.ENVIRONMENT,
+            "timestamp": __import__("datetime")
+            .datetime.now(__import__("datetime").timezone.utc)
+            .isoformat(),
+        }
 
 
 def create_app() -> FastAPI:
@@ -102,42 +165,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     # Health check endpoints (no auth required)
-    @app.get("/healthz", tags=["Health"])
-    async def healthz():
-        return {
-            "status": "ok",
-            "timestamp": __import__("datetime")
-            .datetime.now(__import__("datetime").timezone.utc)
-            .isoformat(),
-        }
-
-    @app.get("/readyz", tags=["Health"])
-    async def readyz():
-        db_ok = False
-        migration_version = None
-        try:
-            async with engine.connect() as conn:
-                await conn.execute(text("SELECT 1"))
-                db_ok = True
-                try:
-                    res = await conn.execute(
-                        text("SELECT version_num FROM alembic_version LIMIT 1")
-                    )
-                    migration_version = res.scalar_one_or_none()
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-        return {
-            "status": "ready" if db_ok else "not_ready",
-            "database": "connected" if db_ok else "disconnected",
-            "migration_version": migration_version,
-            "mode": settings.ENVIRONMENT,
-            "timestamp": __import__("datetime")
-            .datetime.now(__import__("datetime").timezone.utc)
-            .isoformat(),
-        }
+    _register_health_routes(app)
 
     # Explicit ReDoc documentation endpoint using stable ReDoc 2.x
     if docs_enabled:

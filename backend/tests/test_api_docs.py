@@ -115,6 +115,7 @@ async def test_health_and_ready_endpoints() -> None:
         ready_data = resp_readyz.json()
         assert ready_data.get("status") == "ready"
         assert ready_data.get("database") == "connected"
+        assert ready_data.get("migration_status") == "applied"
         assert "migration_version" in ready_data
         assert "timestamp" in ready_data
 

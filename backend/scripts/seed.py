@@ -46,33 +46,36 @@ from app.models import (
 from app.services.ledger import append_ledger_event, verify_ledger_chain
 
 
-async def seed_database(session: AsyncSession) -> None:
-    print("Clearing existing data...")
-    # Temporarily disable ledger immutability trigger for database reset
-    await session.execute(
-        text("ALTER TABLE ledgerevent DISABLE TRIGGER trg_protect_ledger_events;")
-    )
-    # Delete in reverse foreign key order
-    await session.execute(delete(LedgerEvent))
-    await session.execute(delete(IncidentComment))
-    await session.execute(delete(Incident))
-    await session.execute(delete(ConditionReport))
-    await session.execute(delete(Booking))
-    await session.execute(delete(Asset))
-    await session.execute(delete(AvailabilityWindow))
-    await session.execute(delete(ResourceRequirement))
-    await session.execute(delete(Resource))
-    await session.execute(delete(PolicyVersion))
-    await session.execute(delete(Policy))
-    await session.execute(delete(TrainingRecord))
-    await session.execute(delete(Notification))
-    await session.execute(delete(OutboxEvent))
-    await session.execute(delete(User))
-    await session.execute(delete(Organization))
-    # Re-enable ledger immutability trigger
-    await session.execute(text("ALTER TABLE ledgerevent ENABLE TRIGGER trg_protect_ledger_events;"))
-    # Flush deletions
-    await session.flush()
+async def seed_database(session: AsyncSession, clear_existing: bool = True) -> None:
+    if clear_existing:
+        print("Clearing existing data...")
+        # Temporarily disable ledger immutability trigger for database reset
+        await session.execute(
+            text("ALTER TABLE ledgerevent DISABLE TRIGGER trg_protect_ledger_events;")
+        )
+        # Delete in reverse foreign key order
+        await session.execute(delete(LedgerEvent))
+        await session.execute(delete(IncidentComment))
+        await session.execute(delete(Incident))
+        await session.execute(delete(ConditionReport))
+        await session.execute(delete(Booking))
+        await session.execute(delete(Asset))
+        await session.execute(delete(AvailabilityWindow))
+        await session.execute(delete(ResourceRequirement))
+        await session.execute(delete(Resource))
+        await session.execute(delete(PolicyVersion))
+        await session.execute(delete(Policy))
+        await session.execute(delete(TrainingRecord))
+        await session.execute(delete(Notification))
+        await session.execute(delete(OutboxEvent))
+        await session.execute(delete(User))
+        await session.execute(delete(Organization))
+        # Re-enable ledger immutability trigger
+        await session.execute(
+            text("ALTER TABLE ledgerevent ENABLE TRIGGER trg_protect_ledger_events;")
+        )
+        # Flush deletions
+        await session.flush()
 
     now = datetime.now(UTC)
 
@@ -1148,6 +1151,24 @@ async def seed_database(session: AsyncSession) -> None:
     assert res_nit["valid"] is True
     assert res_harbour["valid"] is True
     print("All ledger chains verified successfully!")
+
+
+async def safe_bootstrap_demo(session: AsyncSession) -> bool:
+    """Safely seeds demo institutional data if and only if the database is currently empty.
+
+    Refuses to run if any user records already exist, guaranteeing that existing
+    production or institutional data is never overwritten or deleted.
+    """
+    res = await session.execute(text('SELECT count(id) FROM "user"'))
+    user_count = res.scalar_one_or_none() or 0
+    if user_count > 0:
+        print(f"Safe bootstrap skipped: database already contains {user_count} user(s).")
+        return False
+
+    print("Database is empty. Performing safe non-destructive demo bootstrap...")
+    await seed_database(session, clear_existing=False)
+    print("Safe demo bootstrap completed successfully.")
+    return True
 
 
 async def main() -> None:

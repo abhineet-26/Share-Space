@@ -14,13 +14,19 @@ interface AppContextValue {
   organization: Organization | null;
   allDemoUsers: User[];
   allOrganizations: Organization[];
+  demoPersonasEnabled: boolean;
+  demoResetEnabled: boolean;
+  demoPersonasLoading: boolean;
+  demoPersonasError: string | null;
   notifications: Notification[];
   unreadCount: number;
   loading: boolean;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   switchUser: (userId: string) => Promise<void>;
+  signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  loadDemoPersonas: () => Promise<void>;
   resetDemoData: () => Promise<void>;
   toasts: ToastItem[];
   showToast: (type: ToastItem['type'], title: string, message?: string) => void;
@@ -34,6 +40,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [allDemoUsers, setAllDemoUsers] = useState<User[]>([]);
   const [allOrganizations, setAllOrganizations] = useState<Organization[]>([]);
+  const [demoPersonasEnabled, setDemoPersonasEnabled] = useState<boolean>(true);
+  const [demoResetEnabled, setDemoResetEnabled] = useState<boolean>(false);
+  const [demoPersonasLoading, setDemoPersonasLoading] = useState<boolean>(true);
+  const [demoPersonasError, setDemoPersonasError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -81,44 +91,96 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const loadDemoPersonas = useCallback(async () => {
+    setDemoPersonasLoading(true);
+    setDemoPersonasError(null);
+    try {
+      const res = await api.getDemoPersonas();
+      setDemoPersonasEnabled(res.enabled);
+      setDemoResetEnabled(res.resetEnabled);
+      if (res.personas && res.personas.length > 0) {
+        setAllDemoUsers(res.personas);
+      }
+      if (res.organizations && res.organizations.length > 0) {
+        setAllOrganizations(res.organizations);
+      }
+    } catch (err: any) {
+      setDemoPersonasError(err?.message || 'Failed to load demo accounts');
+    } finally {
+      setDemoPersonasLoading(false);
+    }
+  }, []);
+
   const refreshSession = useCallback(async () => {
     try {
       const me = await api.getMe();
       setUser(me.user);
       setOrganization(me.organization);
-      setAllDemoUsers(me.allDemoUsers);
-      setAllOrganizations(me.allOrganizations);
-      const notifs = await api.getNotifications();
+      if (me.allDemoUsers && me.allDemoUsers.length > 0) {
+        setAllDemoUsers(me.allDemoUsers);
+      }
+      if (me.allOrganizations && me.allOrganizations.length > 0) {
+        setAllOrganizations(me.allOrganizations);
+      }
+      const notifs = await api.getNotifications().catch(() => []);
       setNotifications(notifs);
-    } catch (err) {
-      console.error('Failed to load session:', err);
+    } catch (err: any) {
+      // 401 indicates normal unauthenticated session state
+      setUser(null);
+      setOrganization(null);
+      setNotifications([]);
+      if (err?.statusCode !== 401 && err?.code !== 'HTTP_401' && err?.code !== 'UNAUTHORIZED') {
+        console.warn('Session refresh:', err?.message || err);
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    loadDemoPersonas();
     refreshSession();
-  }, [refreshSession]);
+  }, [loadDemoPersonas, refreshSession]);
 
   const switchUser = useCallback(
     async (userId: string) => {
-      const res = await api.demoLogin(userId);
-      await refreshSession();
-      showToast(
-        'info',
-        `Signed in as ${res.user.name}`,
-        `Organisation: ${res.organization.name} · Roles: ${res.user.roles.join(', ')}`
-      );
+      try {
+        const res = await api.demoLogin(userId);
+        setUser(res.user);
+        setOrganization(res.organization);
+        await refreshSession();
+        showToast(
+          'info',
+          `Signed in as ${res.user.name}`,
+          `Organisation: ${res.organization.name} · Roles: ${res.user.roles.join(', ')}`
+        );
+      } catch (err: any) {
+        showToast('error', 'Sign-in failed', err?.message || 'Could not authenticate demo user');
+        throw err;
+      }
     },
     [refreshSession, showToast]
   );
 
+  const signOut = useCallback(async () => {
+    await api.logout();
+    setUser(null);
+    setOrganization(null);
+    setNotifications([]);
+    showToast('info', 'Signed out', 'Session cleared successfully.');
+  }, [showToast]);
+
   const resetDemoData = useCallback(async () => {
-    await api.resetDemoData();
-    await refreshSession();
-    showToast('success', 'Demo data restored', 'Seeded bookings, policies, incidents, and ledger chain have been reset.');
-  }, [refreshSession, showToast]);
+    try {
+      await api.resetDemoData();
+      await refreshSession();
+      await loadDemoPersonas();
+      showToast('success', 'Demo data restored', 'Seeded bookings, policies, incidents, and ledger chain have been reset.');
+    } catch (err: any) {
+      showToast('error', 'Reset failed', err?.message || 'Could not reset demo database');
+      throw err;
+    }
+  }, [loadDemoPersonas, refreshSession, showToast]);
 
   const unreadCount = notifications.filter((n) => !n.readAt).length;
 
@@ -129,13 +191,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         organization,
         allDemoUsers,
         allOrganizations,
+        demoPersonasEnabled,
+        demoResetEnabled,
+        demoPersonasLoading,
+        demoPersonasError,
         notifications,
         unreadCount,
         loading,
         theme,
         toggleTheme,
         switchUser,
+        signOut,
         refreshSession,
+        loadDemoPersonas,
         resetDemoData,
         toasts,
         showToast,

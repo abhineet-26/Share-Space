@@ -222,3 +222,80 @@ async def test_cross_tenant_admin_modification_blocked_by_rls() -> None:
         # Fail-closed RLS hides org_harbour users from org_nit tenant session -> returns 404
         assert resp.status_code == 404
         assert resp.json()["error"]["code"] == "NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_demo_personas_unauthenticated_discovery() -> None:
+    """Verifies that demo personas can be discovered without an active session."""
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        resp = await client.get("/api/v1/auth/demo-personas")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["enabled"] is True
+        personas = data["personas"]
+        assert len(personas) >= 5
+        persona_ids = [p["id"] for p in personas]
+        assert "usr_aarav" in persona_ids
+        assert "usr_priya" in persona_ids
+        assert "usr_rohan" in persona_ids
+
+        # Ensure no sensitive attributes or passwords leaked
+        for p in personas:
+            assert "organizationName" in p
+            assert "roles" in p
+            assert "password" not in p
+            assert "hashedPassword" not in p
+
+
+@pytest.mark.asyncio
+async def test_demo_personas_and_login_respect_disabled_flag(monkeypatch) -> None:
+    """Verifies that disabling ENABLE_DEMO_LOGIN cleanly hides personas and rejects demo sign-in."""
+    from app.core.config import get_settings
+
+    cfg = get_settings()
+    monkeypatch.setattr(cfg, "ENABLE_DEMO_LOGIN", False)
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        # Discovery returns enabled=False and empty list
+        resp = await client.get("/api/v1/auth/demo-personas")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["enabled"] is False
+        assert data["personas"] == []
+
+        # Login is rejected with 403 Forbidden
+        login_resp = await client.post(
+            "/api/v1/auth/demo-login",
+            json={"userId": "usr_aarav"},
+        )
+        assert login_resp.status_code == 403
+        assert login_resp.json()["detail"]["code"] == "DEMO_DISABLED"
+
+
+@pytest.mark.asyncio
+async def test_demo_reset_protected_in_production(monkeypatch) -> None:
+    """Verifies that demo reset is rejected in production unless explicitly enabled and authorized."""
+    from app.core.config import get_settings
+
+    cfg = get_settings()
+    monkeypatch.setattr(cfg, "ENVIRONMENT", "production")
+    monkeypatch.setattr(cfg, "ENABLE_DEMO_RESET", False)
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        resp = await client.post("/api/v1/auth/reset-demo")
+        assert resp.status_code == 403
+        assert resp.json()["detail"]["code"] == "DEMO_RESET_DISABLED"
+
+
+@pytest.mark.asyncio
+async def test_safe_bootstrap_refuses_when_institutional_data_present() -> None:
+    """Verifies safe_bootstrap_demo refuses to run when users are already present."""
+    from scripts.seed import safe_bootstrap_demo
+
+    async with AdminSessionFactory() as session:
+        # DB is already populated by setup fixture
+        success = await safe_bootstrap_demo(session)
+        assert success is False

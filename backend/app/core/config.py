@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -55,8 +55,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # Demo Login
-    ENABLE_DEMO_LOGIN: bool = False
+    # Demo Login & Reset
+    ENABLE_DEMO_LOGIN: bool = True
+    ENABLE_DEMO_RESET: bool = False
     DEMO_DEFAULT_ORG_ID: str = "org_nit"
 
     # CORS
@@ -85,6 +86,40 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: int = 100
     RATE_LIMIT_AUTH: int = 20
     RATE_LIMIT_AI: int = 10
+
+    @model_validator(mode="after")
+    def sync_database_urls(self) -> Settings:
+        db_url = self.DATABASE_URL
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+            self.DATABASE_URL = db_url
+        elif db_url.startswith("postgresql://") and "+asyncpg" not in db_url:
+            db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            self.DATABASE_URL = db_url
+
+        if "sqlite" in self.DATABASE_MIGRATION_URL and "sqlite" not in self.DATABASE_URL:
+            self.DATABASE_MIGRATION_URL = self.DATABASE_URL
+        elif self.DATABASE_MIGRATION_URL.startswith("postgres://"):
+            self.DATABASE_MIGRATION_URL = self.DATABASE_MIGRATION_URL.replace(
+                "postgres://", "postgresql+asyncpg://", 1
+            )
+        elif (
+            self.DATABASE_MIGRATION_URL.startswith("postgresql://")
+            and "+asyncpg" not in self.DATABASE_MIGRATION_URL
+        ):
+            self.DATABASE_MIGRATION_URL = self.DATABASE_MIGRATION_URL.replace(
+                "postgresql://", "postgresql+asyncpg://", 1
+            )
+
+        if "sqlite" in self.SYNC_DATABASE_URL and "sqlite" not in self.DATABASE_URL:
+            self.SYNC_DATABASE_URL = self.DATABASE_URL.replace(
+                "postgresql+asyncpg://", "postgresql://"
+            )
+        elif self.SYNC_DATABASE_URL.startswith("postgres://"):
+            self.SYNC_DATABASE_URL = self.SYNC_DATABASE_URL.replace(
+                "postgres://", "postgresql://", 1
+            )
+        return self
 
     @property
     def cors_origins_list(self) -> list[str]:
