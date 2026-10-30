@@ -44,6 +44,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
     theme,
     toggleTheme,
     switchUser,
+    signOut,
     toasts,
     dismissToast,
   } = useApp();
@@ -153,7 +154,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
     },
     {
       label: 'Scan asset QR',
-      path: '/assets/scan/qr_nit_osc_001_9f8a7b',
+      path: '/assets/scan/qr_sec_dso_8f7b2a9e4c1d',
       icon: <QrCode className="w-4 h-4" />,
       roles: ['USER', 'OWNER', 'MANAGER', 'ADMIN'],
       group: 'USER',
@@ -352,13 +353,28 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <span className="truncate font-medium" title={organization.name}>
               {organization.name}
             </span>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1 text-[var(--brand-primary)] hover:underline shrink-0 ml-2"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Accounts</span>
-            </Link>
+            <div className="flex items-center gap-2 shrink-0 ml-2">
+              <Link
+                to="/login"
+                className="text-[var(--brand-primary)] hover:underline"
+                title="Switch demo account"
+              >
+                Switch persona
+              </Link>
+              <span className="text-[var(--text-muted)]">·</span>
+              <button
+                type="button"
+                onClick={async () => {
+                  await signOut();
+                  navigate('/login');
+                }}
+                className="inline-flex items-center gap-1 text-[var(--status-danger)] hover:underline cursor-pointer"
+                title="Sign out of current session"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>Sign out</span>
+              </button>
+            </div>
           </div>
         </div>
       </aside>
@@ -432,6 +448,19 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               className="px-3.5 py-2 text-xs font-medium rounded-[8px] bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)] hover:bg-[var(--brand-hover)] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               Find equipment
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await signOut();
+                navigate('/login');
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--status-danger)] hover:border-[var(--status-danger)]/40 hover:bg-[var(--status-danger-bg)] transition-colors cursor-pointer"
+              title="Sign out of current session"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </header>
@@ -582,6 +611,20 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 </Link>
               ))}
             </nav>
+            <div className="p-3 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]/50">
+              <button
+                type="button"
+                onClick={async () => {
+                  setMobileMenuOpen(false);
+                  await signOut();
+                  navigate('/login');
+                }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-[6px] border border-[var(--status-danger)]/40 text-[var(--status-danger)] bg-[var(--status-danger-bg)] hover:bg-[var(--status-danger)]/20 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign out</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

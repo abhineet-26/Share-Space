@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "tsx server.ts",
     "start": "node server.ts",
-    "build": "vite build",
+    "build": "vite build && cp dist/index.html dist/404.html",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
+    "test": "tsx tests/assisted_search.test.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

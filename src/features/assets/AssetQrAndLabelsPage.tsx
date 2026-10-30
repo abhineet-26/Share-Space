@@ -12,7 +12,7 @@ export const AssetScanLandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useApp();
 
-  const [manualToken, setManualToken] = useState(token || 'qr_nit_osc_001_9f8a7b');
+  const [manualToken, setManualToken] = useState(token || 'qr_sec_dso_8f7b2a9e4c1d');
   const [scanResult, setScanResult] = useState<{
     asset: Asset;
     resource: Resource;
@@ -30,7 +30,7 @@ export const AssetScanLandingPage: React.FC = () => {
   useEffect(() => {
     let active = true;
     const runScan = async () => {
-      const targetToken = token || 'qr_nit_osc_001_9f8a7b';
+      const targetToken = token || 'qr_sec_dso_8f7b2a9e4c1d';
       setManualToken(targetToken);
       setLoading(true);
       setError('');
@@ -53,10 +53,12 @@ export const AssetScanLandingPage: React.FC = () => {
   }, [token, user]);
 
   const demoTokens = [
-    { label: 'Digital Oscilloscope (Approved for Aarav)', token: 'qr_nit_osc_001_9f8a7b' },
-    { label: 'Bench Power Supply (Checked out to Aarav)', token: 'qr_nit_psu_001_3b4a9c' },
-    { label: 'Multimeter Kit (Return pending confirm)', token: 'qr_nit_dmm_001_2d8e4f' },
-    { label: 'Prusa MK4S 3D Printer', token: 'qr_nit_3dp_001_4c2d1e' },
+    { label: 'Digital Oscilloscope (Approved for Aarav)', token: 'qr_sec_dso_8f7b2a9e4c1d' },
+    { label: 'Prusa MK4S 3D Printer (Training Required)', token: 'qr_sec_fdm_3e91a0b5c87f' },
+    { label: 'Sony FX3 Cinema Camera Kit', token: 'qr_sec_cam_7a1c9e2b4f6d' },
+    { label: 'Fluke 87V Digital Multimeter', token: 'qr_sec_dmm_4b8c1a9e7f3d' },
+    { label: 'Hakko Soldering Station', token: 'qr_sec_sld_2d7e5a1b8c9f' },
+    { label: 'Harbour Laser Cutter (Makerspace)', token: 'qr_sec_lzr_5f8a1c3d9e2b' },
   ];
 
   return (

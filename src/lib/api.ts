@@ -885,10 +885,15 @@ export const api = {
     }
   ): Promise<{ booking: Booking; report: ConditionReport }> {
     if (API_MODE === 'live') {
-      return liveFetch(`/bookings/${bookingId}/check-in`, {
+      const res = await liveFetch<any>(`/bookings/${bookingId}/check-in`, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
+      const booking = res?.booking || res;
+      return {
+        booking,
+        report: res?.report || ({} as any),
+      };
     }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
@@ -989,10 +994,16 @@ export const api = {
     }
   ): Promise<{ booking: Booking; report: ConditionReport; incident?: Incident }> {
     if (API_MODE === 'live') {
-      return liveFetch(`/bookings/${bookingId}/return`, {
+      const res = await liveFetch<any>(`/bookings/${bookingId}/return`, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
+      const booking = res?.booking || res;
+      return {
+        booking,
+        report: res?.report || ({} as any),
+        incident: res?.incident,
+      };
     }
     const db = await getDb();
     const actor = await getAuthenticatedActor();
@@ -2207,16 +2218,31 @@ export const api = {
   },
 
   // --- ASSISTIVE AI WITH HIGH THINKING + DETERMINISTIC FALLBACK ---
-  async parseNaturalLanguageQuery(query: string): Promise<{
+  async parseNaturalLanguageQuery(
+    query: string,
+    currentResources?: Resource[]
+  ): Promise<{
     category: string;
     keywords: string[];
     matches: Array<{ resourceId: string; reason: string }>;
     reasoningSummary: string;
     source: string;
   }> {
-    const db = await getDb();
-    const actor = await getAuthenticatedActor();
-    const resources = db.resources.filter((r) => r.organizationId === actor.organizationId);
+    let resources = currentResources;
+    if (!resources || resources.length === 0) {
+      if (API_MODE === 'live') {
+        try {
+          resources = await api.getResources();
+        } catch {
+          resources = [];
+        }
+      }
+      if (!resources || resources.length === 0) {
+        const db = await getDb();
+        const actor = await getAuthenticatedActor();
+        resources = db.resources.filter((r) => r.organizationId === actor.organizationId);
+      }
+    }
 
     try {
       const res = await fetch('/api/ai/parse-query', {

@@ -307,7 +307,7 @@ export const LoginPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
           <button
             type="button"
-            onClick={() => handleSelectPersona('usr_diya', '/resources/res_3dprinter')}
+            onClick={() => handleSelectPersona('usr_diya', '/resources/res_3dprint')}
             className="text-left p-3 rounded-[6px] border border-[var(--border-color)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
           >
             <div className="font-semibold text-[var(--text-primary)]">1. Diya → 3D Printer (Blocked)</div>
@@ -318,7 +318,7 @@ export const LoginPage: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => handleSelectPersona('usr_aarav', '/resources/res_oscilloscope/request')}
+            onClick={() => handleSelectPersona('usr_aarav', '/resources/res_scope/request')}
             className="text-left p-3 rounded-[6px] border border-[var(--border-color)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
           >
             <div className="font-semibold text-[var(--text-primary)]">2. Aarav → Request Oscilloscope</div>
@@ -340,7 +340,7 @@ export const LoginPage: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => handleSelectPersona('usr_aarav', '/bookings/bkg_approved_aarav/check-in')}
+            onClick={() => handleSelectPersona('usr_aarav', '/bookings/bkg_aarav_scope_approved/check-in')}
             className="text-left p-3 rounded-[6px] border border-[var(--border-color)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
           >
             <div className="font-semibold text-[var(--text-primary)]">4 & 5. Aarav → Check-in & Return</div>
@@ -362,12 +362,12 @@ export const LoginPage: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => handleSelectPersona('usr_ravi', '/incidents/inc_open_01')}
+            onClick={() => handleSelectPersona('usr_ravi', '/incidents/inc_nit_camera_lens_scratch')}
             className="text-left p-3 rounded-[6px] border border-[var(--border-color)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
           >
             <div className="font-semibold text-[var(--text-primary)]">9 & 10. Incident Review & Ledger</div>
             <div className="text-[var(--text-secondary)] mt-0.5">
-              Review Diya’s reported allegation on Multimeter lead and verify the SHA-256 ledger.
+              Review reported allegation on Camera lens scratch and verify the SHA-256 ledger.
             </div>
           </button>
         </div>

@@ -846,72 +846,159 @@ export function deterministicParseDiscoveryQuery(
   reasoningSummary: string;
   source: string;
 } {
-  const q = query.toLowerCase();
+  const q = query.toLowerCase().trim();
+  const stopWords = new Set(['the', 'and', 'for', 'with', 'need', 'want', 'can', 'use', 'project', 'our', 'some', 'about']);
   const tokens = q
     .replace(/[^a-z0-9\s-]/g, ' ')
     .split(/\s+/)
-    .filter((t) => t.length > 2 && !['the', 'and', 'for', 'with', 'need', 'want', 'can', 'use', 'measure', 'project'].includes(t));
+    .filter((t) => t.length > 2 && !stopWords.has(t));
 
   let category = 'ALL';
-  if (/voltage|current|circuit|solder|pcb|oscilloscope|probe|signal|power|multimeter|3d|print|pla|petg/.test(q)) {
+  if (/voltage|current|circuit|solder|pcb|oscilloscope|probe|signal|waveform|pwm|ringing|transient|multimeter|dmm|power\s*supply|rigol|fluke|keysight/.test(q)) {
     category = 'ELECTRONICS';
-  } else if (/camera|video|photo|film|light|tripod|gpu|render|train|compute|cuda/.test(q)) {
+  } else if (/camera|video|photo|film|light|tripod|lens|shoot|interview|gpu|render|cuda|compute|rtx|print|3d|printer|enclosure|filament|pla|petg|prusa|extruder|fdm/.test(q)) {
     category = 'MEDIA_COMPUTING';
-  } else if (/room|meeting|space|team|whiteboard|presentation|discuss/.test(q)) {
+  } else if (/room|meeting|space|team|whiteboard|presentation|discuss|conference|collab/.test(q)) {
     category = 'SPACE';
   }
 
-  const matches: Array<{ resourceId: string; reason: string }> = [];
+  interface ScoredMatch {
+    resourceId: string;
+    score: number;
+    reason: string;
+  }
+
+  const scored: ScoredMatch[] = [];
 
   for (const r of resources) {
-    const haystack = `${r.name} ${r.description} ${r.category} ${r.location} ${r.accessories.join(' ')}`.toLowerCase();
-    const matchedTerms: string[] = [];
+    const rawType = (r.illustrationType || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const haystack = `${r.name} ${r.description} ${r.category} ${r.location} ${(r.accessories || []).join(' ')} ${rawType}`.toLowerCase();
+    let score = 0;
+    const reasons: string[] = [];
 
-    if (/voltage|current|signal|waveform|pwm|ringing|frequency|measure/.test(q) && ['oscilloscope', 'multimeter', 'powersupply'].includes(r.illustrationType)) {
-      if (r.illustrationType === 'oscilloscope') matchedTerms.push('measures time-domain voltage waveforms, PWM switching, and signal transients');
-      if (r.illustrationType === 'multimeter') matchedTerms.push('measures True-RMS voltage, current, continuity, and thermocouple temperature');
-      if (r.illustrationType === 'powersupply') matchedTerms.push('supplies regulated DC voltage and current-limited bench power');
-    }
-
-    if (/solder|pcb|rework|smd|board/.test(q) && r.illustrationType === 'soldering') {
-      matchedTerms.push('provides temperature-controlled soldering and SMD hot-air rework with fume extraction');
-    }
-
-    if (/print|3d|enclosure|prototype|cad|pla|petg/.test(q) && r.illustrationType === 'printer3d') {
-      matchedTerms.push('fabricates 3D printed enclosures and mechanical parts in PLA/PETG');
-    }
-
-    if (/photo|video|shoot|film|interview|lens|record|lighting/.test(q) && ['camera', 'lighting'].includes(r.illustrationType)) {
-      matchedTerms.push('supports studio video recording, macro documentation, and three-point lighting');
-    }
-
-    if (/gpu|ml|ai|simulation|render|compute|cuda/.test(q) && r.illustrationType === 'workstation') {
-      matchedTerms.push('provides dual RTX 4090 GPUs and 64-core CPU for compute-intensive workloads');
-    }
-
-    if (/room|team|meeting|whiteboard|collaborat|review/.test(q) && ['room_project', 'room_meeting'].includes(r.illustrationType)) {
-      matchedTerms.push('provides shared collaborative space with display and whiteboard facilities');
-    }
-
-    for (const tok of tokens) {
-      if (haystack.includes(tok) && matchedTerms.length === 0) {
-        matchedTerms.push(`matches technical keyword "${tok}" in specification`);
+    // Specific intent patterns
+    // 1. PWM, Waveform, Signal, Oscilloscope
+    if (/pwm|waveform|ringing|transient|signal\s*analysis|bandwidth|nanosecond|duty\s*cycle/.test(q)) {
+      if (rawType.includes('oscilloscope') || r.id === 'res_scope' || r.id === 'res_oscilloscope' || r.name.toLowerCase().includes('oscilloscope')) {
+        score += 130;
+        reasons.push('Measures time-domain waveforms, PWM duty cycles, ringing transients, and signal integrity');
+      } else if (rawType.includes('multimeter') || r.id === 'res_dmm' || r.id === 'res_multimeter' || r.name.toLowerCase().includes('multimeter')) {
+        score += 40;
+        reasons.push('Can measure True-RMS voltage, frequency, and duty cycle (secondary instrument)');
+      } else if (rawType.includes('power') || r.id === 'res_psu' || r.id === 'res_powersupply') {
+        score += 25;
+        reasons.push('Supplies DC bench power to test PWM circuits under load');
       }
     }
 
-    if (matchedTerms.length > 0) {
-      matches.push({
+    // 2. Voltage, Current, Continuity, Multimeter
+    if (/voltage|current|continuity|true-rms|multimeter|resistance|dmm/.test(q) && !/pwm|waveform|ringing/.test(q)) {
+      if (rawType.includes('multimeter') || r.id === 'res_dmm' || r.id === 'res_multimeter') {
+        score += 120;
+        reasons.push('Measures True-RMS AC/DC voltage, current, continuity, and resistance');
+      } else if (rawType.includes('oscilloscope') || r.id === 'res_scope' || r.id === 'res_oscilloscope') {
+        score += 80;
+        reasons.push('Visualizes voltage waveforms and peak-to-peak amplitude over time');
+      } else if (rawType.includes('power') || r.id === 'res_psu' || r.id === 'res_powersupply') {
+        score += 55;
+        reasons.push('Supplies programmable voltage and current limits');
+      }
+    }
+
+    // 3. Tripod & Camera Stabilization
+    if (/tripod|fluid\s*head|carbon\s*fiber|mount|stabiliz/.test(q)) {
+      if (rawType.includes('tripod') || r.id === 'res_tripod' || r.name.toLowerCase().includes('tripod')) {
+        score += 160;
+        reasons.push('Carbon fiber video tripod with 504HD fluid head for stable pan/tilt and smooth video framing');
+      } else if (rawType.includes('camera') || r.id === 'res_camera') {
+        score += 35;
+        reasons.push('Compatible cinema camera for tripod mounting');
+      }
+    }
+
+    // 4. Video, Cinema Camera, 4K, Interview, Photography
+    if (/camera|video|shoot|film|interview|lens|4k|cinema|record|photo/.test(q) && !/tripod/.test(q)) {
+      if (rawType.includes('camera') || r.id === 'res_camera' || r.name.toLowerCase().includes('camera')) {
+        score += 140;
+        reasons.push('Full-frame 4K cinema camera with 24-70mm f/2.8 lens for high-definition video capture and interviews');
+      } else if (rawType.includes('tripod') || r.id === 'res_tripod') {
+        score += 45;
+        reasons.push('Essential video accessory for stable studio and location camera setups');
+      }
+    }
+
+    // 5. 3D Print, Enclosure, Prototype, PLA, PETG
+    if (/print|3d|enclosure|prototype|pla|petg|filament|extruder|prusa/.test(q)) {
+      if (rawType.includes('printer') || r.id === 'res_3dprint' || r.id === 'res_3dprinter' || r.name.toLowerCase().includes('printer')) {
+        score += 150;
+        reasons.push('FDM 3D printer for rapid prototyping of enclosures, brackets, and mechanical fixtures');
+      }
+    }
+
+    // 6. Solder, PCB, Rework, Station
+    if (/solder|rework|smd|flux|iron|hakko|desolder|pcb/.test(q)) {
+      if (rawType.includes('solder') || r.id === 'res_soldering' || r.name.toLowerCase().includes('soldering')) {
+        score += 150;
+        reasons.push('Temperature-controlled soldering station with ESD safe iron for PCB assembly and repair');
+      }
+    }
+
+    // 7. GPU, AI, ML, Deep Learning, Compute
+    if (/gpu|cuda|ml|ai|deep\s*learning|train|compute|rtx|workstation|model/.test(q)) {
+      if (rawType.includes('workstation') || r.id === 'res_gpu' || r.name.toLowerCase().includes('gpu')) {
+        score += 150;
+        reasons.push('Dual RTX 4090 GPUs with CUDA 12 support for training models and intensive scientific compute');
+      }
+    }
+
+    // 8. Meeting Room, Space, Whiteboard, Team Review, Collaboration
+    if (/room|meeting|space|whiteboard|team\s*review|discuss|collab|conference/.test(q)) {
+      if (rawType.includes('project') || r.id === 'res_room204' || r.name.toLowerCase().includes('room 204')) {
+        score += 120;
+        reasons.push('Hardware project room with magnetic whiteboards, breakout seating, and ESD benches');
+      } else if (rawType.includes('meeting') || r.id === 'res_meeting_b' || r.id === 'res_room_b' || r.name.toLowerCase().includes('conference')) {
+        score += 110;
+        reasons.push('Conference room equipped with 4K video display and hybrid collaboration facilities');
+      }
+    }
+
+    // Keyword tokens matching in haystack
+    for (const tok of tokens) {
+      if (r.name.toLowerCase().includes(tok)) {
+        score += 25;
+      } else if (haystack.includes(tok)) {
+        score += 10;
+      }
+    }
+
+    // Match category alignment boost
+    if (category !== 'ALL') {
+      if (r.category === category) {
+        score += 15;
+      } else {
+        score -= 25;
+      }
+    }
+
+    if (score > 30) {
+      const topReason = reasons[0] || `Technical match for "${q}" across specifications and equipment profile`;
+      scored.push({
         resourceId: r.id,
-        reason: `Assisted match: ${matchedTerms[0]}. Final availability and eligibility are evaluated by deterministic rules.`,
+        score,
+        reason: `Assisted match: ${topReason}. Final availability and eligibility are evaluated by deterministic rules.`,
       });
     }
   }
 
+  scored.sort((a, b) => b.score - a.score);
+
   return {
     category,
     keywords: tokens.slice(0, 6),
-    matches,
-    reasoningSummary: `Parsed query for technical intent (${tokens.join(', ') || 'general catalog'}) and matched ${matches.length} institutional resource(s).`,
+    matches: scored.map((s) => ({ resourceId: s.resourceId, reason: s.reason })),
+    reasoningSummary: scored.length > 0
+      ? `Identified ${scored.length} matching resources for "${query}". Top recommendation: ${scored[0].resourceId}.`
+      : `No direct equipment matches found for "${query}". Try searching by category or equipment type.`,
     source: 'Deterministic Keyword Parser (Assisted Search)',
   };
 }

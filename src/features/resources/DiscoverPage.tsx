@@ -82,7 +82,7 @@ export const DiscoverPage: React.FC = () => {
     if (assistedMode) {
       setParsingQuery(true);
       try {
-        const res = await api.parseNaturalLanguageQuery(searchText);
+        const res = await api.parseNaturalLanguageQuery(searchText, resources);
         setAssistedResult(res);
         if (res.category && res.category !== 'ALL') {
           setCategoryFilter(res.category);
@@ -418,13 +418,28 @@ export const DiscoverPage: React.FC = () => {
                     </div>
                   )}
 
-                  <Link
-                    to={`/resources/${res.id}`}
-                    className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-[8px] bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)] hover:bg-[var(--brand-hover)] transition-colors"
-                  >
-                    <span>View details</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  <div className="flex flex-col gap-1.5 w-full">
+                    {elig?.eligible && res.status === 'PUBLISHED' && (
+                      <Link
+                        to={`/resources/${res.id}/request`}
+                        className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-[8px] bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)] hover:bg-[var(--brand-hover)] transition-colors shadow-sm"
+                      >
+                        <span>Request booking</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    )}
+                    <Link
+                      to={`/resources/${res.id}`}
+                      className={`w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                        elig?.eligible && res.status === 'PUBLISHED'
+                          ? 'border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+                          : 'bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)] hover:bg-[var(--brand-hover)]'
+                      }`}
+                    >
+                      <span>{elig?.eligible ? 'View details' : 'View requirements & details'}</span>
+                      {(!elig?.eligible || res.status !== 'PUBLISHED') && <ArrowRight className="w-3.5 h-3.5" />}
+                    </Link>
+                  </div>
                 </div>
               </article>
             );
@@ -478,13 +493,28 @@ export const DiscoverPage: React.FC = () => {
                       )}
                     </div>
                   )}
-                  <Link
-                    to={`/resources/${res.id}`}
-                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)] hover:bg-[var(--brand-hover)]"
-                  >
-                    <span>View details</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  <div className="flex flex-col gap-1.5 w-full">
+                    {elig?.eligible && res.status === 'PUBLISHED' && (
+                      <Link
+                        to={`/resources/${res.id}/request`}
+                        className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-[8px] bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)] hover:bg-[var(--brand-hover)] transition-colors shadow-sm"
+                      >
+                        <span>Request booking</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    )}
+                    <Link
+                      to={`/resources/${res.id}`}
+                      className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                        elig?.eligible && res.status === 'PUBLISHED'
+                          ? 'border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+                          : 'bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)] hover:bg-[var(--brand-hover)]'
+                      }`}
+                    >
+                      <span>{elig?.eligible ? 'View details' : 'View requirements & details'}</span>
+                      {(!elig?.eligible || res.status !== 'PUBLISHED') && <ArrowRight className="w-3.5 h-3.5" />}
+                    </Link>
+                  </div>
                 </div>
               </article>
             );
