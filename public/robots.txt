@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /about
+Allow: /privacy
+Allow: /terms
+Allow: /contact
+Allow: /thank-you
+
+# Disallow private operational, governance, and user-session workflows
+Disallow: /admin/
+Disallow: /review/
+Disallow: /bookings/
+Disallow: /owner/
+Disallow: /ledger
+Disallow: /incidents/
+Disallow: /profile
+Disallow: /notifications
+Disallow: /assets/scan/
+
+Sitemap: https://sharespace-frontend-ayd4.onrender.com/sitemap.xml

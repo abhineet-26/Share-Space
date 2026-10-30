@@ -22,6 +22,7 @@ import {
 } from '../../lib/types';
 import { formatDateTime, formatTimeRange } from '../../lib/utils';
 import { ChainIntegrityBadge, StatusIndicator } from '../../components/Primitives';
+import { SeoMeta } from '../../components/SeoMeta';
 
 export const DashboardPage: React.FC = () => {
   const { user, organization, showToast } = useApp();
@@ -131,6 +132,12 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <SeoMeta
+        title="Workspace Dashboard | SHARESPACE"
+        description="Private institutional operational dashboard for resource reservations, handover workflows, and ledger verification."
+        canonicalPath="/"
+        robots="noindex, nofollow"
+      />
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[var(--border-color)] pb-4">
         <div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Building2, ArrowRight, ShieldCheck, RotateCcw, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useApp } from '../../app/AppContext';
+import { SeoMeta } from '../../components/SeoMeta';
 
 export const LoginPage: React.FC = () => {
   const {
@@ -63,6 +64,12 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      <SeoMeta
+        title="Sign in & Demo Personas | SHARESPACE"
+        description="Select an institutional demo account to inspect SHARESPACE roles, policy verification, handover audits, and PostgreSQL row-level security boundaries."
+        canonicalPath="/login"
+        robots="noindex, follow"
+      />
       {/* Header */}
       <div className="border-b border-[var(--border-color)] pb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

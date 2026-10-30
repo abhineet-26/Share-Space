@@ -15,6 +15,7 @@ import { api } from '../../lib/api';
 import { Role, TrainingRecord, User } from '../../lib/types';
 import { downloadFile, formatDateTime } from '../../lib/utils';
 import { ConfirmActionDialog, StatusIndicator } from '../../components/Primitives';
+import { SeoMeta } from '../../components/SeoMeta';
 
 // 1. Admin Users, Roles & Training Verification (/admin/users)
 export const AdminUsersPage: React.FC = () => {
@@ -623,6 +624,12 @@ export const ProfilePage: React.FC = () => {
 export const AboutPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <SeoMeta
+        title="Architecture & Trust | SHARESPACE"
+        description="Detailed system architecture, verified capabilities, and technical honesty report for the SHARESPACE platform."
+        canonicalPath="/about"
+        robots="index, follow"
+      />
       <div className="border-b border-[var(--border-color)] pb-4">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">
           SHARESPACE — Implementation status, honesty & API architecture

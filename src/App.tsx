@@ -38,6 +38,13 @@ import {
   ProfilePage,
   AboutPage,
 } from './features/admin/AdminAndProfilePages';
+import { LandingPage } from './features/public/LandingPage';
+import { NotFoundPage } from './features/public/NotFoundPage';
+import { PrivacyPolicyPage } from './features/public/PrivacyPolicyPage';
+import { TermsOfServicePage } from './features/public/TermsOfServicePage';
+import { ContactPage } from './features/public/ContactPage';
+import { ThankYouPage } from './features/public/ThankYouPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useApp();
@@ -113,39 +120,42 @@ const RoleGuard: React.FC<{
   return <>{children}</>;
 };
 
-const NotFoundPage: React.FC = () => (
-  <div className="max-w-lg mx-auto bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-[8px] p-6 space-y-3 text-center">
-    <h1 className="text-xl font-bold text-[var(--text-primary)]">404 — Route not found</h1>
-    <p className="text-xs text-[var(--text-secondary)]">
-      The requested operational screen does not exist.
-    </p>
-    <Link
-      to="/"
-      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)]"
-    >
-      <span>Return to Dashboard</span>
-      <ArrowRight className="w-3.5 h-3.5" />
-    </Link>
-  </div>
-);
+const RootIndexRoute: React.FC = () => {
+  const { user, loading } = useApp();
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs font-mono-tech text-[var(--text-secondary)]">
+          Connecting to institutional identity...
+        </span>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <DashboardPage />;
+  }
+
+  return <LandingPage />;
+};
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppProvider>
-        <AppShell>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/about" element={<AboutPage />} />
-
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppProvider>
+          <AppShell>
+            <Routes>
+              {/* Public Informational & Legal Routes */}
+              <Route path="/" element={<RootIndexRoute />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsOfServicePage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/thank-you" element={<ThankYouPage />} />
+              <Route path="/login" element={<LoginPage />} />
             <Route
               path="/discover"
               element={
@@ -389,5 +399,6 @@ export default function App() {
         </AppShell>
       </AppProvider>
     </BrowserRouter>
-  );
+  </ErrorBoundary>
+);
 }

@@ -7,11 +7,13 @@ interface Props {
 }
 
 export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-full h-36' }) => {
+  const normType = (type || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
   return (
     <div
       className={`flex items-center justify-center bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-[6px] overflow-hidden select-none ${className}`}
       role="img"
-      aria-label={`Technical schematic illustration for ${type.replace('_', ' ')}`}
+      aria-label={`Technical schematic illustration for ${type ? String(type).replace('_', ' ') : 'resource'}`}
     >
       <svg
         viewBox="0 0 240 120"
@@ -23,7 +25,7 @@ export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-ful
         <line x1="16" y1="104" x2="224" y2="104" stroke="currentColor" strokeOpacity="0.15" strokeWidth="1" />
         <line x1="16" y1="16" x2="224" y2="16" stroke="currentColor" strokeOpacity="0.15" strokeWidth="1" />
 
-        {type === 'oscilloscope' && (
+        {normType.includes('oscilloscope') && (
           <g stroke="currentColor" strokeWidth="1.5">
             <rect x="34" y="22" width="172" height="76" rx="4" fill="var(--bg-surface)" />
             <rect x="44" y="30" width="98" height="52" rx="2" />
@@ -48,7 +50,7 @@ export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-ful
           </g>
         )}
 
-        {type === 'printer3d' && (
+        {(normType.includes('printer') || normType.includes('3d')) && (
           <g stroke="currentColor" strokeWidth="1.5">
             <rect x="64" y="18" width="112" height="84" rx="4" fill="var(--bg-surface)" />
             <line x1="76" y1="26" x2="76" y2="90" />
@@ -63,7 +65,7 @@ export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-ful
           </g>
         )}
 
-        {type === 'camera' && (
+        {(normType.includes('camera') || normType.includes('tripod')) && (
           <g stroke="currentColor" strokeWidth="1.5">
             <rect x="58" y="34" width="124" height="62" rx="6" fill="var(--bg-surface)" />
             <path d="M 92 34 L 100 22 L 140 22 L 148 34" fill="var(--bg-surface)" />
@@ -74,7 +76,7 @@ export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-ful
           </g>
         )}
 
-        {type === 'soldering' && (
+        {(normType.includes('soldering') || normType.includes('solder')) && (
           <g stroke="currentColor" strokeWidth="1.5">
             <rect x="44" y="42" width="76" height="54" rx="4" fill="var(--bg-surface)" />
             <rect x="56" y="52" width="52" height="20" rx="2" />
@@ -89,7 +91,7 @@ export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-ful
           </g>
         )}
 
-        {type === 'powersupply' && (
+        {(normType.includes('powersupply') || (normType.includes('power') && !normType.includes('workstation'))) && (
           <g stroke="currentColor" strokeWidth="1.5">
             <rect x="40" y="28" width="160" height="66" rx="4" fill="var(--bg-surface)" />
             <rect x="52" y="38" width="84" height="32" rx="2" />
@@ -107,7 +109,7 @@ export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-ful
           </g>
         )}
 
-        {type === 'multimeter' && (
+        {(normType.includes('multimeter') || normType.includes('dmm')) && (
           <g stroke="currentColor" strokeWidth="1.5">
             <rect x="82" y="16" width="76" height="88" rx="6" fill="var(--bg-surface)" />
             <rect x="92" y="26" width="56" height="24" rx="2" />
@@ -122,7 +124,7 @@ export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-ful
           </g>
         )}
 
-        {type === 'lighting' && (
+        {normType.includes('lighting') && (
           <g stroke="currentColor" strokeWidth="1.5">
             {/* Softbox & tripod */}
             <polygon points="90,26 150,20 150,64 90,58" fill="var(--bg-surface)" />
@@ -135,7 +137,7 @@ export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-ful
           </g>
         )}
 
-        {type === 'workstation' && (
+        {(normType.includes('workstation') || normType.includes('gpu')) && (
           <g stroke="currentColor" strokeWidth="1.5">
             {/* Monitor + GPU Tower */}
             <rect x="42" y="26" width="96" height="58" rx="3" fill="var(--bg-surface)" />
@@ -149,7 +151,7 @@ export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-ful
           </g>
         )}
 
-        {(type === 'room_project' || type === 'room_meeting') && (
+        {(normType.includes('room') || normType.includes('project') || normType.includes('meeting')) && (
           <g stroke="currentColor" strokeWidth="1.5">
             {/* Architectural room plan schematic */}
             <rect x="44" y="22" width="152" height="76" rx="2" fill="var(--bg-surface)" />
@@ -164,7 +166,7 @@ export const ResourceIllustration: React.FC<Props> = ({ type, className = 'w-ful
           </g>
         )}
 
-        {(type === 'laser_cutter' || type === 'cnc_router') && (
+        {(normType.includes('laser') || normType.includes('cnc')) && (
           <g stroke="currentColor" strokeWidth="1.5">
             <rect x="38" y="28" width="164" height="66" rx="4" fill="var(--bg-surface)" />
             <rect x="50" y="38" width="112" height="46" rx="2" />

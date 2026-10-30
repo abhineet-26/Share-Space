@@ -16,6 +16,7 @@ import { api } from '../../lib/api';
 import { EligibilityEvaluationResult, Resource } from '../../lib/types';
 import { ResourceIllustration } from '../../components/ResourceIllustration';
 import { StatusIndicator } from '../../components/Primitives';
+import { SeoMeta } from '../../components/SeoMeta';
 
 export const DiscoverPage: React.FC = () => {
   const { user } = useApp();
@@ -120,6 +121,12 @@ export const DiscoverPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <SeoMeta
+        title="Discover Resources | SHARESPACE"
+        description="Search institutional equipment, laboratories, and workspaces with real-time deterministic eligibility checks."
+        canonicalPath="/discover"
+        robots="noindex, follow"
+      />
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[var(--border-color)] pb-4">
         <div>

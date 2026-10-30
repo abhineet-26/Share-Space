@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { useApp } from '../app/AppContext';
 import { Role } from '../lib/types';
+import { PublicFooter } from './PublicFooter';
+import { CookieConsentBanner } from './CookieConsentBanner';
 
 interface NavItem {
   label: string;
@@ -58,7 +60,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         {/* Unauthenticated Navigation Header */}
         <header className="h-[64px] px-6 border-b border-[var(--border-color)] bg-[var(--bg-surface)] flex items-center justify-between select-none">
           <Link
-            to="/login"
+            to="/"
             className="text-base font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2"
           >
             <span className="w-2.5 h-2.5 rounded-[2px] bg-[var(--brand-primary)] inline-block" />
@@ -80,10 +82,16 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               Architecture & Trust
             </Link>
             <Link
-              to="/login"
-              className="px-3.5 py-1.5 text-xs font-medium rounded-[6px] bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)] hover:bg-[var(--brand-hover)] transition-colors"
+              to="/contact"
+              className="hidden sm:inline-flex px-3 py-1.5 text-xs font-medium rounded-[6px] border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
             >
-              Select Persona
+              Contact / Pilot
+            </Link>
+            <Link
+              to="/login"
+              className="px-3.5 py-1.5 text-xs font-semibold rounded-[6px] bg-[var(--brand-primary)] text-[var(--brand-text-on-primary)] hover:bg-[var(--brand-hover)] shadow-xs transition-colors"
+            >
+              Explore Demo
             </Link>
           </div>
         </header>
@@ -92,6 +100,12 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </main>
+
+        {/* Public Footer */}
+        <PublicFooter />
+
+        {/* Cookie Consent Manager */}
+        <CookieConsentBanner />
 
         {/* Global Toasts */}
         {toasts.length > 0 && (
@@ -656,6 +670,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </div>
         ))}
       </div>
+
+      {/* Global Cookie Consent Manager */}
+      <CookieConsentBanner />
     </div>
   );
 };
